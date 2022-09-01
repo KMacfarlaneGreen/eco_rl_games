@@ -11,3 +11,10 @@ mypy                # python type checker
 black               # automatic formatting provider
 isort               # automatic import sorter
 python-dotenv       # environment variable manager
+
+numpy
+jupyter
+networkx
+imageio
+matplotlib
+pytorch
