@@ -1,5 +1,5 @@
 import numpy as np
-from src.environment import * #change to classes
+from src.huff_lattice_environment import * #change to classes
 
 def initialise_nodes_experiment1(N, Nt, nodes):
     '''initialise arrays for particle trajectories, number of particles at each node and resources at each node for experiment 1'''
@@ -11,8 +11,8 @@ def initialise_nodes_experiment1(N, Nt, nodes):
         resources_at_nodes[i][0] = 10
     
     for n in range(0,N):      #for each particle
-        trajectories[n][0] = nodes[10] #initialise node locations at same node as resources
-        loc_init = 10
+        trajectories[n][0] = nodes[9] #initialise node locations at same (10) node as resources (or different (any))
+        loc_init = 9
         particles_at_nodes[loc_init][0] +=1
         
     return trajectories, particles_at_nodes, resources_at_nodes
@@ -28,8 +28,8 @@ def initialise_nodes_experiment2(N, Nt, nodes):
         resources_at_nodes[i][0] = 2
 
     for n in range(0,N):      #for each particle
-        trajectories[n][0] = nodes[10] #initialise node locations at same node 
-        loc_init = 10
+        trajectories[n][0] = nodes[9] #initialise node locations at same node 
+        loc_init = 9
         particles_at_nodes[loc_init][0] +=1
 
     return trajectories, particles_at_nodes, resources_at_nodes
@@ -42,19 +42,21 @@ def play(N, Nt,l,r,u,d,s, g, init_func,dim1,dim2):
     trajectories, particles_at_nodes, resources_at_nodes = init_func(N, Nt, nodes) 
     rewards, action = initialise_rew(N, Nt)
     theta_a, alpha_a, k_a = initialise_params(N,Nt)
+    lamda, z = initialise_survival(N, Nt)
     prob = []
 
     for i in range(1,Nt):    #for each time step change Nt=2 for 1 timestep
+        print('iteration', i)
         agent_locs = np.zeros(N)
-        z = catch(N, theta_a)
+        z = catch(N, theta_a, z ,i)
         #print(z)
-        lamda, p = survival(N, alpha_a, k_a)
-        print(lamda)
+        lamda, p = survival(N, i, alpha_a, k_a, lamda, z, 5)
+        #print(lamda)
         prob.append(p)
    
         for n in range(0,N):    #for each particle
         
-            if lamda[n] == 1.0:    #only update position if agent survives 
+            if lamda[n][i] == 1.0:    #only update position if agent survives 
                 
                 trajectories[n][i], action[n][i] = update_pos(trajectories[n][i-1],l,r,u,d,s)   #update position (action)
                 
@@ -64,7 +66,7 @@ def play(N, Nt,l,r,u,d,s, g, init_func,dim1,dim2):
             
                 agent_locs[n] = int(part_num)
      
-            if lamda[n] == 0.0:
+            if lamda[n][i] == 0.0:
             
                 trajectories[n][i] = trajectories[n][i-1]  #set trajectory to remain the same if agent dies
         
@@ -85,22 +87,22 @@ def play(N, Nt,l,r,u,d,s, g, init_func,dim1,dim2):
         
             for j in range(0,N):
             
-                if int(agent_locs[j]) == v and lamda[j] == 1.0:  #n
+                if int(agent_locs[j]) == v and lamda[j][i] == 1.0:  #n
                 
                     agents_node_v.append(j)         #gives which agents are located on that node
                 
             #print('agents at node', agents_node_v)  
-            b = beta(z, agents_node_v)          #calculate beta for the agents located on node v 
+            b = beta(z, agents_node_v, i)          #calculate beta for the agents located on node v 
             #print('consumption',b)
             for x in agents_node_v:
                 
                 if b <= n_b_v and b > 0:
 
-                    if z[x] == 1.0:
+                    if z[x][i] == 1.0:
                 
                         rewards[x][i] = 1         #agents are rewarded if they survive, successfully catch prey and do not exceed the available resource
                     
-                if z[x] == 0.0:
+                if z[x][i] == 0.0:
                     
                     rewards[x][i] = -1
           
