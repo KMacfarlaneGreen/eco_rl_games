@@ -5,6 +5,32 @@ import numpy as np
 import networkx as nx
 import os
 
+def save_run(particles_at_nodes, resources_at_nodes, rewards, savename):
+    total_preds = np.sum(particles_at_nodes, axis = 0)
+    total_prey = np.sum(resources_at_nodes, axis = 0) 
+    rewards = np.sum(rewards, axis=0)
+
+    preds = open('results/preds_{}.csv'.format(savename),'a')
+    prey = open('results/prey_{}.csv'.format(savename),'a')
+    rews = open('results/rewards_{}.csv'.format(savename),'a')
+
+    np.savetxt(preds, total_preds, fmt='%1.3f', newline=", ")
+    preds.write("\n")
+    np.savetxt(prey, total_prey, fmt='%1.3f', newline=", ")
+    prey.write("\n")
+    np.savetxt(rews,rewards , fmt='%1.3f', newline=", ")
+    preds.write("\n")
+    prey.write("\n")
+    rews.write("\n")
+    preds.close()
+    prey.close()
+    rews.close()
+    #np.savetxt('preds_{}.csv'.format(savename), total_preds, delimiter=',', fmt='%s')
+    #np.savetxt('prey_{}.csv'.format(savename), total_prey, delimiter=',', fmt='%s')
+    #np.savetxt('rewards_{}.csv'.format(savename), rewards, delimiter=',', fmt='%s')
+
+    return
+
 #change to functions
 def plot_dynamics(particles_at_nodes, resources_at_nodes, Nt, savename):
 
@@ -16,6 +42,29 @@ def plot_dynamics(particles_at_nodes, resources_at_nodes, Nt, savename):
 
     plt.plot(time_sim[0:Nt], total_preds[0:Nt], label = 'predators')
     plt.plot(time_sim[0:Nt], total_prey[0:Nt], label = 'prey')
+    plt.legend()
+    plt.xlabel('Time')
+    plt.ylabel('Population')
+
+    plt.show()
+
+    filename = '{}.png'.format(savename)
+    
+    fig.savefig(filename)
+
+def plot_average_dynamics(all_preds, all_prey, Nt, savename):
+
+    tot_preds= np.sum(np.array(all_preds), axis = 0)
+    tot_prey = np.sum(np.array(all_prey), axis = 0)
+
+    avg_preds = tot_preds[0:100]/10
+    avg_prey = tot_prey[0:100]/10   
+
+    fig = plt.figure()
+    time_sim = np.linspace(0,Nt,Nt)
+
+    plt.plot(time_sim[0:Nt], avg_preds[0:Nt], label = 'predators')
+    plt.plot(time_sim[0:Nt], avg_prey[0:Nt], label = 'prey')
     plt.legend()
     plt.xlabel('Time')
     plt.ylabel('Population')

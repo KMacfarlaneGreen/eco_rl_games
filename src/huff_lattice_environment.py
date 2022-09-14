@@ -70,6 +70,14 @@ def initialise_rew(N, Nt):
     
     return rewards, actions
 
+def initialise_survival(N, Nt):
+    '''initialise stored arrays for lamda and z'''
+
+    lamda = np.zeros((N,Nt))
+    z = np.zeros((N,Nt))
+
+    return lamda, z
+
 def initialise_params(N, Nt):
     '''initialise parameter values for agents'''
     
@@ -85,9 +93,9 @@ def initialise_params(N, Nt):
         
     return theta_a, alpha_a, k_a  
 
-def survival(N_i, alpha_a, k_a):
+def survival(N_i, t, alpha_a, k_a, lamda, z, survival_thresh):
     '''Calculating whether agents die or survive'''
-    lamda = np.zeros(N_i)
+    #lamda = np.zeros(N_i)
     p = np.zeros(N_i)
     
     for i in range(0,N_i):
@@ -99,25 +107,31 @@ def survival(N_i, alpha_a, k_a):
             p[i] = 1
         
         if np.random.binomial(1, p[i]) == 1:
-            lamda[i] = 1
+            lamda[i][t] = 1
         else:
-            lamda[i] = 0
+            lamda[i][t] = 0
+        
+        #s = t-survival_thresh
+        #print(z[i][s:t])
+        #if t > s:
+            #if np.all(z[i][s:t] == 0.0):
+                #lamda[i][t] = 0
             
     return lamda, p
 
-def survival_at_node(lamda, N_i):
+def survival_at_node(lamda, N_i, t):
     '''returns how many agents survive at a given node'''
     s = 0
     
     for n in N_i:
         
-        s += lamda[n]
+        s += lamda[n][t]
         
     return s
 
-def catch(N_i, theta_a):
+def catch(N_i, theta_a, z, t):
     '''Determines whether agents successfully consume food'''
-    z = np.zeros(N_i)
+    #z = np.zeros(N_i)
     
     for i in range(0,N_i):
         
@@ -128,19 +142,19 @@ def catch(N_i, theta_a):
             theta = 1
         
         if np.random.binomial(1, theta)== 1:
-            z[i] = 1
+            z[i][t] = 1
         else:
-            z[i] = 0
+            z[i][t] = 0
             
     return z
 
-def beta(z, N_i):
+def beta(z, N_i, t):
     '''Returns how many agents on a given node consume food'''
     beta = 0
     
     for n in N_i:
         
-        beta += z[n]
+        beta += z[n][t]
         
     return beta
 
@@ -206,14 +220,17 @@ def update_theta(theta_a, reward, lamda, N_i, time):
     '''Updates agent's fitness parameter depending on the reward it receives'''
     for n in range(0,N_i):
         
-        if theta_a[n] < 1.0:
+        if 0.1 <= theta_a[n] <= 0.9:
         
             if reward[n][time] == 1.0:
             
-                theta_a[n] = theta_a[n] + 0.01    #try adjusting these hyperparameters also
+                theta_a[n] = theta_a[n] + 0.1    #try adjusting these hyperparameters also #0.01
 
-            #if reward[n][time] == -1.0:
-                #theta_a[n] = theta_a[n] - 0.01
+            if reward[n][time] == -1.0:
+                theta_a[n] = theta_a[n] - 0.1
+
+            if reward[n][time] == -5.0:
+                theta_a[n] = 0.0000001
 
     return theta_a
 
