@@ -19,7 +19,7 @@ import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 from agent import Agent
-#from mind import Mind
+from mind import Mind
 
 class Environment:
     def __init__(self, size, num_actions = 2, name = None, 
@@ -29,6 +29,8 @@ class Environment:
         self.graph = nx.cycle_graph(node_num)
         self.nodes = list(self.graph.nodes)
         self.num_agents = num_agents
+        input_size = 1
+        self.mind = Mind(input_size, num_actions)
 
         #to do: sort mind function:
         #- inputs, outputs, handling each agent's individual mind
@@ -71,42 +73,34 @@ class Environment:
         return self.map.copy()
 
     def move(self, agent):
-        #to do: convert these location coordinates to graph nodes
+    #mark as updated
+    #moves an agent to new node location following a decision to move left or right
         (i) = loc = agent.get_loc()     #only need single index to correspond to single node 
-        (i_n) = to = agent.get_decision()
-        self.map[i] = 0         #look at how generate_map works
-        self.map[i_n] = agent.get_type()
-        agent.set_loc(to)
-        self.loc_to_agent[to] = agent        #what is this loc_to_agent?
-        del self.loc_to_agent[loc]
+        (i_n) = to = agent.get_decision()  #decision returns the new location after performing action 0 for move left and 1 for move right
+                
+        self.map[i] -= 1         #remove an agent from the previous node
+        self.map[i_n] += 1       #add this agent to the new node 
+        agent.set_loc(to)         #set this new node location to the agent
+        self.loc_to_agent[to] = agent        
+        del self.loc_to_agent[loc]   #delete the previous entry in the dictionary
 
-    def step(self, agent, by):
-        #function for calculating the reward of each agent - should be much simpler for me 
+    def step(self, agent, act):
+         #function for calculating the local reward of each agent cumulative and global entropy reward should be calculated somewhere else - mind?
         (i) = agent.get_loc() # current location - change to graph
         assert self.loc_to_agent[(i)]
-        (di) = by
-        (i_n) = self._add((i), (di)) #new location
+        (di) = act     #action 
+        (i_n) = self._add((i), (di))
         agent.set_decision((i_n))
-        if self.map[i_n] == self.names_to_vals["free"]:   #edit this to be the same but dependent on the number of agents at a given node instead of the grid value
-            rew = self.on_free(agent)                     #how to do this? What are the meanings/outputs of these functions?
-            assert rew != None                             #is it easier to try and structure ring code I have to this format?
-        elif self.map[i_n] == self.names_to_vals["prey"]:
-            prey = self.loc_to_agent[(i_n)]
-            if agent.get_type() in [-1, 1]:
-                rew = self.on_prey(agent, prey)
-            else:
-                rew = self.on_same(agent, prey)
+        self.move(agent)
+        
+        if self.map[i_n] == 1.0:   #if agent has moved to a node where it is the only one present it receives a positive reward
+            rew = 1                     
+            assert rew != None                             
+        elif self.map[i_n] > 1.0:  #if agent moves to a node where there are also other agents then it recieves a negatibve reward
+            rew = -1
             assert rew != None
-        elif self.map[i_n] * agent.get_type() == -1:
-            opponent = self.loc_to_agent[(i_n)]
-            rew = self.on_opponent(agent, opponent)
-            assert rew != None
-        elif di == 0 and dj == 0:
-            rew = self.on_still(agent)
         else:
-            other_agent = self.loc_to_agent[(i_n, j_n)]
-            rew = self.on_same(agent, other_agent)
-            assert rew != None
+            assert rew != None     #raise assertion error if node value at agent location is zero
         done = False
         self.update_agent(agent, rew, done)
         agent.clear_decision()
@@ -115,18 +109,18 @@ class Environment:
 
     def update_agent(self, agent, rew, done):    #what are the different functions of step, update_agent and update?
         state = self.get_agent_state(agent)
-        agent.set_next_state(state)
-        name = self.vals_to_names[agent.get_type()]
+        agent.set_next_state(state)                 #is this set_next_state in mind?
+        name = self.vals_to_names[agent.get_type()]   #? - don't have different types of agents
         agent.update(rew, done)
         return rew
 
     def update(self):
         #to do: think about mind and how that will work, inputs, outputs, what to save
         self.iteration += 1
-        self.history.append(self.map.copy())
+        self.history.append(self.map.copy())     #do we want our history to represent the whole graph?
 
-        self.A_mind.train(self.names_to_vals["A"])
-        self.B_mind.train(self.names_to_vals["B"])
+        self.A_mind.train(self.names_to_vals["A"])    #need to work out how training functions will work with each individual being trained in a decentralised manner
+        self.B_mind.train(self.names_to_vals["B"])    #lots of the rest of this function we won't need
         a_ages = []
         a_ids = []
         b_ages = []
@@ -174,7 +168,8 @@ class Environment:
             np.save("%s/episodes/b_loss.npy" % self.name, np.array(B_losses))
 
     def shuffle(self):
-        #think the shuffles the order of agents for iterations?
+        #think the shuffles the order of agents for iterations? - do I need this?
+        #what purpose does this serve different to generate map?
         map = np.zeros(self.size)
         loc_to_agent = {}    #this is where loc_to_agent comes in
 
@@ -195,9 +190,9 @@ class Environment:
         self.iteration = 0
 
     def record(self, rews):
-        self.records.append(rews)
+        self.records.append(rews)    #rewards goes to records
 
-    def save(self, episode):
+    def save(self, episode):     #work out how and what to save
         f = gzip.GzipFile('%s/crystal.npy.gz' % self.name, "w")
         np.save(f, self.crystal)
         f.close()
@@ -257,6 +252,7 @@ class Environment:
         # loc_to_agent = location of each agent   what is the structure of these dicionaries? 
         # id_to_agent = id of each agent
         # work out how to include mind networks
+        # Mark as updated
         map = np.zeros(self.size)   #index corresponds to graph node i.e. map[0] = 1 means there is one agent on node zero
         loc_to_agent = {}
         id_to_agent = {}
@@ -265,7 +261,8 @@ class Environment:
         init_nodes = np.zeros(self.num_agents) #initialise agent locations (gives initial node loaction for each agent i.e. init_node[0] = 10 means agent 0 begins on node 10) 
         for j in range(0, self.num_agents):   #needs to be outside loop over nodes so doesn't change each time
             init_nodes[j] = np.random.choice(self.nodes)
-            agent = Agent(idx, (init_nodes[j]))
+            mind = self.mind
+            agent = Agent(idx, (init_nodes[j]), mind)
             loc_to_agent[(init_nodes[j])] = agent
             id_to_agent[idx] = agent
             agents.append(agent)
@@ -282,6 +279,24 @@ class Environment:
                                                                 #how to assign number of agents to graph originally?
         return map, agents, loc_to_agent, id_to_agent
 
+    def _add(self, loc, act):
+        #mark completed
+        i = loc
+        di = act  #action (0=left, 1=right)
+        if di == 0:
+            #move left
+            if loc == 0.0:
+                (i_n) = to = 99.0
+            else:
+                (i_n) = to = loc - 1   
+        if di == 1:
+            #move right
+            if loc < 99.0:
+                (i_n) = to = loc + 1
+            else:
+                (i_n)= to = 0.0
+        return (i_n)
+
     def predefined_initialization(self, file):
         # not sure what this does
         with open(file) as f:
@@ -297,7 +312,7 @@ class Environment:
 
     def _count(self, arr):
 
-        # not sure what this does
+        # not sure what this does - don't think I need it 
 
         cnt = np.zeros(len(self.vals))
         arr = arr.reshape(-1)

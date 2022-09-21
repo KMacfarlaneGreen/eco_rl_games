@@ -1,13 +1,14 @@
 import numpy as np
+from mind import Mind
 
 class Agent:
-    def __init__(self, id, loc):#, mind):
+    def __init__(self, id, loc, mind):
         self.id = id
         self.loc = loc
         self.current_state = None
         self.action = None
         self.next_state = None
-        #self.mind = mind
+        self.mind = mind
         #self.input_size = mind.get_input_size()
         #self.output_size = mind.get_output_size()
         self.decision = None
@@ -30,9 +31,8 @@ class Agent:
         pass
 
     def decide(self, state):
-        #self.action = self.mind.decide(state)
-        #return self.action
-        pass
+        self.action = self.mind.decide(state)
+        return self.action
 
     def get_state(self):
         return self.current_state
