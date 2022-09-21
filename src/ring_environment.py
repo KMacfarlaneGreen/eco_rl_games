@@ -19,7 +19,7 @@ import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 from agent import Agent
-from mind import Mind
+#from mind import Mind
 
 class Environment:
     def __init__(self, size, num_actions = 2, name = None, 
@@ -54,8 +54,8 @@ class Environment:
             self.name = name
 
         if not os.path.isdir(str(self.name)):
-            os.mkdir(str(self.name))
-            os.mkdir(str(self.name)+'/episodes')
+            #os.mkdir(str(self.name))
+            #os.mkdir(str(self.name)+'/episodes')
             self.map, self.agents, self.loc_to_agent, self.id_to_agent = self._generate_map()
             self._set_initial_states()
             #self.mask = self._get_mask()
@@ -265,28 +265,21 @@ class Environment:
         init_nodes = np.zeros(self.num_agents) #initialise agent locations (gives initial node loaction for each agent i.e. init_node[0] = 10 means agent 0 begins on node 10) 
         for j in range(0, self.num_agents):   #needs to be outside loop over nodes so doesn't change each time
             init_nodes[j] = np.random.choice(self.nodes)
+            agent = Agent(idx, (init_nodes[j]))
+            loc_to_agent[(init_nodes[j])] = agent
+            id_to_agent[idx] = agent
+            agents.append(agent)
+            idx += 1
 
         for i in enumerate(map):
-
             for x in range(0, self.num_agents):
-
-                if i == init_nodes[x]:
-
-                    map[i] += 1
+                if i[0] == init_nodes[x]:
+                    map[i[0]] += 1
             
             #val = np.random.choice(self.vals, p=self.probs)   #val = number of agents on node i
                                                                 #not a random choice - should this come after or within agent loop/assignation
                                                                 #similar structure if val not == 0?
                                                                 #how to assign number of agents to graph originally?
-
-            agent = Agent(idx, (i))#, mind)   #what is probs? - probability of a grid square containing a predator or prey?
-                                                                #this is originally looping over each grid square and updating the value then th agent params
-            loc_to_agent[(i)] = agent
-            id_to_agent[idx] = agent
-            agents.append(agent)
-            idx += 1
-            #map[i] = val     #this is the 'value' of the grid square in the segregation problem being added to the map
-                                    #this is what I need to change to graph nodes with given numbers of agents present
         return map, agents, loc_to_agent, id_to_agent
 
     def predefined_initialization(self, file):

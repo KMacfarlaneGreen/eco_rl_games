@@ -17,4 +17,4 @@ jupyter
 networkx
 imageio
 matplotlib
-pytorch
+#pytorch  #update this to include gpu suppport
