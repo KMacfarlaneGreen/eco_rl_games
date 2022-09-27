@@ -94,3 +94,7 @@ io/
 *.csv
 *.png
 *.gif
+*.npy.gz
+*.npy
+*.gz
+*./test_experiment*

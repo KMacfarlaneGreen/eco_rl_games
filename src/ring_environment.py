@@ -23,7 +23,7 @@ from mind import Mind
 
 class Environment:
     def __init__(self, size, num_actions = 2, name = None, 
-            max_iteration = 5000, num_agents = 20):
+            max_iteration = 5000, num_agents = 20, lock = None):
        
         node_num = self.size = size
         self.graph = nx.cycle_graph(node_num)
@@ -32,36 +32,30 @@ class Environment:
         input_size = 1
         self.mind = Mind(input_size, num_actions)
 
+        if lock:
+            self.lock = lock
+        else:
+            self.lock = Lock()
+
         #to do: sort mind function:
         #- inputs, outputs, handling each agent's individual mind
 
-        #self.A_mind = Mind(input_size, num_actions, self.lock, Queue())
-        #self.B_mind = Mind(input_size, num_actions, self.lock, Queue())
-        #for segregation the agent_range defines the window that each agent can observe which is then input to that nn
         self.max_iteration = max_iteration
-
-        #self.vals = [-1, 0, 1, 2]  #possible values for grid squares in segregation case
-        #self.names_to_vals = {"void": -2, "A": -1, "free": 0, "B": 1, "prey": 2}
-        #self.vals_to_names = {v: k for k, v in self.names_to_vals.items()}
-        #self.vals_to_index = {-1: 0, 0: 1, 1: 2, 2: 3}
-
-        self.crystal = np.zeros((max_iteration, node_num, 1))  #id  -should there be other info in this?
-        #what actually is this crystal object? Is this what's being saved?
-
+        self.crystal = np.zeros((max_iteration, node_num, 1)) 
         self.history = []        #think about what quantities I want to save
-        self.id_track = []       #how to define, intitialise and store them 
+        #self.id_track = []       #how to define, intitialise and store them 
         self.records = []
 
         if name:
             self.name = name
 
         if not os.path.isdir(str(self.name)):
-            #os.mkdir(str(self.name))
-            #os.mkdir(str(self.name)+'/episodes')
-            self.map, self.agents, self.loc_to_agent, self.id_to_agent = self._generate_map()
+            os.mkdir(str(self.name))
+            os.mkdir(str(self.name)+'/episodes')
+            self.map, self.agents, self.id_to_agent = self._generate_map()  #deleted self.loc_to_agent
             self._set_initial_states()
-            #self.mask = self._get_mask()
-            self.crystal = np.zeros((max_iteration, nodes, 2)) # tr,  id
+            self.crystal = np.zeros((max_iteration, node_num, 1)) #in segregation crystal is an array which saves the agent type, id and age at each location at each iteration
+                                                                  #for me I just want to save the number of agents at each node at each iteration (map)
             self.iteration = 0
         else:
             assert False, "There exists an experiment with this name."
@@ -78,25 +72,29 @@ class Environment:
         (i) = loc = agent.get_loc()     #only need single index to correspond to single node 
         (i_n) = to = agent.get_decision()  #decision returns the new location after performing action 0 for move left and 1 for move right
                 
-        self.map[i] -= 1         #remove an agent from the previous node
-        self.map[i_n] += 1       #add this agent to the new node 
+        self.map[int(i)] -= 1         #remove an agent from the previous node
+        self.map[int(i_n)] += 1       #add this agent to the new node 
         agent.set_loc(to)         #set this new node location to the agent
-        self.loc_to_agent[to] = agent        
-        del self.loc_to_agent[loc]   #delete the previous entry in the dictionary
+        #self.loc_to_agent[to] = agent        
+        #del self.loc_to_agent[loc]   #delete the previous entry in the dictionary - maybe this is causing problems if multiple agents are at the same location?
+        return self.map.copy()       #correct?
 
     def step(self, agent, act):
-         #function for calculating the local reward of each agent cumulative and global entropy reward should be calculated somewhere else - mind?
+        #mark as updated
+        #function for calculating the local reward of each agent cumulative and global entropy reward should be calculated somewhere else - mind?
         (i) = agent.get_loc() # current location - change to graph
-        assert self.loc_to_agent[(i)]
+        #print('loc', i)
+        #print('loc to agent length', len(self.loc_to_agent))
+        #assert self.loc_to_agent[(i)]
         (di) = act     #action 
-        (i_n) = self._add((i), (di))
+        (i_n) = self._add((i), (di))    #gives new location
         agent.set_decision((i_n))
         self.move(agent)
         
-        if self.map[i_n] == 1.0:   #if agent has moved to a node where it is the only one present it receives a positive reward
+        if self.map[int(i_n)] == 1.0:   #if agent has moved to a node where it is the only one present it receives a positive reward
             rew = 1                     
             assert rew != None                             
-        elif self.map[i_n] > 1.0:  #if agent moves to a node where there are also other agents then it recieves a negatibve reward
+        elif self.map[int(i_n)] > 1.0:  #if agent moves to a node where there are also other agents then it recieves a negatibve reward
             rew = -1
             assert rew != None
         else:
@@ -107,92 +105,68 @@ class Environment:
         return rew
 
 
-    def update_agent(self, agent, rew, done):    #what are the different functions of step, update_agent and update?
+    def update_agent(self, agent, rew, done):   
         state = self.get_agent_state(agent)
-        agent.set_next_state(state)                 #is this set_next_state in mind?
-        name = self.vals_to_names[agent.get_type()]   #? - don't have different types of agents
+        agent.set_next_state(state)                 
         agent.update(rew, done)
         return rew
 
     def update(self):
-        #to do: think about mind and how that will work, inputs, outputs, what to save
+        #mark as updated
         self.iteration += 1
         self.history.append(self.map.copy())     #do we want our history to represent the whole graph?
-
-        self.A_mind.train(self.names_to_vals["A"])    #need to work out how training functions will work with each individual being trained in a decentralised manner
-        self.B_mind.train(self.names_to_vals["B"])    #lots of the rest of this function we won't need
-        a_ages = []
-        a_ids = []
-        b_ages = []
-        b_ids = []
-        id_track = np.zeros(self.map.shape)
-        self.deads = []
+        cumulative_reward = self.records[self.iteration-1]["tot_reward"]
+        #self.A_mind.train(self.names_to_vals["A"])    #need to work out how training functions will work with each individual being trained in a decentralised manner
+        #self.B_mind.train(self.names_to_vals["B"])    #lots of the rest of this function we won't need
+        agent_ids = []
+        agent_locs = []
         for agent in self.agents:
-            typ = agent.get_type()
-            age = agent.get_age()
             idx = agent.get_id()
+            i = agent.get_loc() 
+            self.crystal[self.iteration - 1, int(i)] += 1 #add 1 to the entry at the agent location to give the number of agents located on the node
+            agent_ids.append(str(idx))
+            agent_locs.append(str(i))
 
-            if agent.is_alive():
-                i, j = agent.get_loc()
-                tr = agent.get_time_remaining()
-                id_track[i, j] = idx
-                self.crystal[self.iteration - 1, i, j] = [typ, age, tr, idx]
-            else:
-                self.deads.append([agent.get_type(), agent.get_id()])
+        #self.id_track.append(id_track)
+        agent_ids = " ".join(agent_ids)
+        agent_locs = " ".join(agent_locs)
+        iteration_reward = str(cumulative_reward)
 
-            type = agent.get_type()
-            if type == self.names_to_vals["A"]:
-                a_ages.append(str(age))
-                a_ids.append(str(idx))
-            else:
-                b_ages.append(str(age))
-                b_ids.append(str(idx))
+        with open("%s/episodes/agent_trajectory.csv" % self.name, "a") as f:
+            f.write("%s, %s, %s, %s\n" % (self.iteration, agent_ids, agent_locs, iteration_reward)) #maybe not the nicest way to save these quantities so could try to improve
 
-        self.id_track.append(id_track)
-        a_ages = " ".join(a_ages)
-        b_ages = " ".join(b_ages)
-
-        a_ids = " ".join(a_ids)
-        b_ids = " ".join(b_ids)
-
-        with open("%s/episodes/a_age.csv" % self.name, "a") as f:
-            f.write("%s, %s, %s\n" % (self.iteration, a_ages, a_ids))
-
-        with open("%s/episodes/b_age.csv" % self.name, "a") as f:
-            f.write("%s, %s, %s\n" % (self.iteration, b_ages, b_ids))
-
-        if self.iteration == self.max_iteration - 1:
-            A_losses = self.A_mind.get_losses()
-            B_losses = self.B_mind.get_losses()
-            np.save("%s/episodes/a_loss.npy" % self.name, np.array(A_losses))
-            np.save("%s/episodes/b_loss.npy" % self.name, np.array(B_losses))
+        #if self.iteration == self.max_iteration - 1:
+            #A_losses = self.A_mind.get_losses()
+            #np.save("%s/episodes/a_loss.npy" % self.name, np.array(A_losses))     #Will eventually want to save the training losses
 
     def shuffle(self):
-        #think the shuffles the order of agents for iterations? - do I need this?
+        # do I need this? - not accessed
         #what purpose does this serve different to generate map?
         map = np.zeros(self.size)
         loc_to_agent = {}    #this is where loc_to_agent comes in
 
-        locs = [(i, j) for i in range(self.map.shape[0]) for j in range(self.map.shape[1]) if self.map[i, j] == 0]
+        locs = [(i) for i in range(self.map.shape[0]) if self.map[i] == 0]   
+        #what locations is this assigning and why? 
         random.shuffle(locs)
-        id_track = np.zeros(self.map.shape)
+        #id_track = np.zeros(self.map.shape)
         for i, agent in enumerate(self.agents):
             loc = locs[i]
-            loc_to_agent[loc] = agent
-            id_track[loc] = agent.get_id()
+            #loc_to_agent[loc] = agent
+            #id_track[loc] = agent.get_id()
 
 
-        self.map, self.loc_to_agent = map, loc_to_agent
+        self.map = map
+         #self.loc_to_agent =  loc_to_agent
         self._set_initial_states()
         self.history = [map.copy()]
-        self.id_track = [id_track]
+        #self.id_track = [id_track]
         self.records = []
         self.iteration = 0
 
     def record(self, rews):
         self.records.append(rews)    #rewards goes to records
 
-    def save(self, episode):     #work out how and what to save
+    def save(self, episode):    
         f = gzip.GzipFile('%s/crystal.npy.gz' % self.name, "w")
         np.save(f, self.crystal)
         f.close()
@@ -205,32 +179,11 @@ class Environment:
     def get_agent_state(self, agent):
         #think this returns the state of the square observation or 'field of view' for each agent
         #in that case I need to change it to return the current node location and number of agents at that location
-        hzn = self.hzn
-        i, j = agent.get_loc()
-        fov = np.zeros((2 * hzn + 1, 2 *  hzn + 1)) - 2
-        if self.boundary_exists:
-            start_i, end_i, start_j, end_j = 0, 2 * hzn + 1, 0, 2 * hzn + 1
-            if i < hzn:
-                start_i = hzn - i
-            elif i + hzn - self.size[0] + 1 > 0:
-                end_i = (2 * hzn + 1) - (i + hzn - self.size[0] + 1)
-            if j < hzn:
-                start_j = hzn - j
-            elif j + hzn - self.size[1] + 1 > 0:
-                end_j = (2 * hzn + 1) - (j + hzn - self.size[1] + 1)
-            i_upper = min(i + hzn + 1, self.size[0])
-            i_lower = max(i - hzn, 0)
-
-            j_upper = min(j + hzn + 1, self.size[1])
-            j_lower = max(j - hzn, 0)
-
-            fov[start_i: end_i, start_j: end_j] = self.map[i_lower: i_upper, j_lower: j_upper].copy()
-        else:
-            for di in range(-hzn, hzn+1):
-                for dj in range(-hzn, hzn+1):
-                    fov[hzn + di, hzn + dj] = self.map[(i+di) % self.size[0], (j+dj) % self.size[1]]
-
-        fov[hzn, hzn] = agent.get_type()
+        #mark as updated
+        (i)= agent.get_loc()
+        #print('loc',i)
+        fov = self.map[int(i)].copy()
+        #print('fov',fov)
         return fov
 
     def _to_csv(self, episode):
@@ -249,12 +202,12 @@ class Environment:
         #where:
         # map = graph with n agents on each node (state of environment)
         # agents = agents
-        # loc_to_agent = location of each agent   what is the structure of these dicionaries? 
+        # loc_to_agent = location of each agent   (currently removed - not sure needed for me) 
         # id_to_agent = id of each agent
         # work out how to include mind networks
         # Mark as updated
         map = np.zeros(self.size)   #index corresponds to graph node i.e. map[0] = 1 means there is one agent on node zero
-        loc_to_agent = {}
+        #loc_to_agent = {}
         id_to_agent = {}
         agents = []
         idx = 0
@@ -263,7 +216,7 @@ class Environment:
             init_nodes[j] = np.random.choice(self.nodes)
             mind = self.mind
             agent = Agent(idx, (init_nodes[j]), mind)
-            loc_to_agent[(init_nodes[j])] = agent
+            #loc_to_agent[(init_nodes[j])] = agent   #float loc
             id_to_agent[idx] = agent
             agents.append(agent)
             idx += 1
@@ -277,25 +230,25 @@ class Environment:
                                                                 #not a random choice - should this come after or within agent loop/assignation
                                                                 #similar structure if val not == 0?
                                                                 #how to assign number of agents to graph originally?
-        return map, agents, loc_to_agent, id_to_agent
+        return map, agents, id_to_agent     #deleted loc_to_agent
 
     def _add(self, loc, act):
         #mark completed
-        i = loc
-        di = act  #action (0=left, 1=right)
-        if di == 0:
+        loc
+        act  #action (0=left, 1=right)
+        if act == 0:
             #move left
             if loc == 0.0:
-                (i_n) = to = 99.0
+                to = 99.0
             else:
-                (i_n) = to = loc - 1   
-        if di == 1:
+                to = loc - 1.0   
+        if act == 1:
             #move right
             if loc < 99.0:
-                (i_n) = to = loc + 1
+                to = loc + 1.0
             else:
-                (i_n)= to = 0.0
-        return (i_n)
+                to = 0.0
+        return to #(i_n)
 
     def predefined_initialization(self, file):
         # not sure what this does
@@ -311,9 +264,7 @@ class Environment:
             agent.set_current_state(state)
 
     def _count(self, arr):
-
         # not sure what this does - don't think I need it 
-
         cnt = np.zeros(len(self.vals))
         arr = arr.reshape(-1)
         for elem in arr:
