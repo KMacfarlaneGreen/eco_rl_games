@@ -29,16 +29,16 @@ class Environment:
         self.graph = nx.cycle_graph(node_num)
         self.nodes = list(self.graph.nodes)
         self.num_agents = num_agents
-        input_size = 1
-        self.mind = Mind(input_size, num_actions)
-
+        input_size = 3     #this should be the size of the observation space - how should the observation space be represented [num_left, num_loc, num_right]?
         if lock:
             self.lock = lock
         else:
             self.lock = Lock()
+        self.mind = Mind(input_size, num_actions, self.lock, Queue())
 
         #to do: sort mind function:
         #- inputs, outputs, handling each agent's individual mind
+        weights = self.mind.network.state_dict()  #needed? what does this do?
 
         self.max_iteration = max_iteration
         self.crystal = np.zeros((max_iteration, node_num, 1)) 
@@ -116,8 +116,8 @@ class Environment:
         self.iteration += 1
         self.history.append(self.map.copy())     #do we want our history to represent the whole graph?
         cumulative_reward = self.records[self.iteration-1]["tot_reward"]
-        #self.A_mind.train(self.names_to_vals["A"])    #need to work out how training functions will work with each individual being trained in a decentralised manner
-        #self.B_mind.train(self.names_to_vals["B"])    #lots of the rest of this function we won't need
+        self.mind.train()   #does this need an alternative input to vals_to_names? 
+        #need to work out how training functions will work with each individual being trained in a decentralised manner
         agent_ids = []
         agent_locs = []
         for agent in self.agents:
@@ -135,33 +135,33 @@ class Environment:
         with open("%s/episodes/agent_trajectory.csv" % self.name, "a") as f:
             f.write("%s, %s, %s, %s\n" % (self.iteration, agent_ids, agent_locs, iteration_reward)) #maybe not the nicest way to save these quantities so could try to improve
 
-        #if self.iteration == self.max_iteration - 1:
-            #A_losses = self.A_mind.get_losses()
-            #np.save("%s/episodes/a_loss.npy" % self.name, np.array(A_losses))     #Will eventually want to save the training losses
+        if self.iteration == self.max_iteration - 1:
+            losses = self.mind.get_losses()
+            np.save("%s/episodes/loss.npy" % self.name, np.array(losses))     #Will eventually want to save the training losses
 
-    def shuffle(self):
+    #def shuffle(self):
         # do I need this? - not accessed
         #what purpose does this serve different to generate map?
-        map = np.zeros(self.size)
-        loc_to_agent = {}    #this is where loc_to_agent comes in
+        #map = np.zeros(self.size)
+        #loc_to_agent = {}    #this is where loc_to_agent comes in
 
-        locs = [(i) for i in range(self.map.shape[0]) if self.map[i] == 0]   
+        #locs = [(i) for i in range(self.map.shape[0]) if self.map[i] == 0]   
         #what locations is this assigning and why? 
-        random.shuffle(locs)
+        #random.shuffle(locs)
         #id_track = np.zeros(self.map.shape)
-        for i, agent in enumerate(self.agents):
-            loc = locs[i]
+        #for i, agent in enumerate(self.agents):
+            #loc = locs[i]
             #loc_to_agent[loc] = agent
             #id_track[loc] = agent.get_id()
 
 
-        self.map = map
+        #self.map = map
          #self.loc_to_agent =  loc_to_agent
-        self._set_initial_states()
-        self.history = [map.copy()]
+        #self._set_initial_states()
+        #self.history = [map.copy()]
         #self.id_track = [id_track]
-        self.records = []
-        self.iteration = 0
+        #self.records = []
+        #self.iteration = 0
 
     def record(self, rews):
         self.records.append(rews)    #rewards goes to records
@@ -180,9 +180,21 @@ class Environment:
         #think this returns the state of the square observation or 'field of view' for each agent
         #in that case I need to change it to return the current node location and number of agents at that location
         #mark as updated
+        #extend this to include number of agents at neighbouring nodes - return [num_left, num_loc, num_right]
         (i)= agent.get_loc()
+        if i == 0.0:
+            left_loc = 99.0
+        else:
+            left_loc = i - 1.0 
+        if i < 99.0:
+            right_loc = i + 1.0
+        else:
+            right_loc = 0.0
+        n_left = self.map[int(left_loc)].copy()
+        n_right = self.map[int(right_loc)].copy()
         #print('loc',i)
-        fov = self.map[int(i)].copy()
+        n_loc = self.map[int(i)].copy()
+        fov = [n_left, n_loc, n_right]
         #print('fov',fov)
         return fov
 

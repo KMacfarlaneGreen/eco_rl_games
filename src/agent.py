@@ -9,16 +9,16 @@ class Agent:
         self.action = None
         self.next_state = None
         self.mind = mind
-        #self.input_size = mind.get_input_size()
-        #self.output_size = mind.get_output_size()
+        self.input_size = mind.get_input_size()      #currently set to 1 - not sure correct?
+        self.output_size = mind.get_output_size()
         self.decision = None
 
     def update(self, reward, done):
         assert self.action != None, 'No Action'
         assert reward != None, 'No Reward'
-        #self.mind.remember([[[self.current_state]], [self.action], [[self.next_state]], [reward], [done]])
+        self.mind.remember([[[self.current_state]], [self.action], [[self.next_state]], [reward], [done]])
 
-        #loss = self.mind.train()
+        loss = self.mind.train()
 
         self.action = None
         if not done:
@@ -27,7 +27,7 @@ class Agent:
             self.current_state, self.next_state = None, None
 
     def get_losses(self):
-        #return self.mind.get_losses()
+        return self.mind.get_losses()
         pass
 
     def decide(self, state):
