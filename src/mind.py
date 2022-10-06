@@ -56,7 +56,7 @@ class Mind:
         self.steps_done += 1                              #to do: add in this steps done attribute
         if sample > eps_threshold:
             with torch.no_grad():
-                state = torch.FloatTensor([[state]], device=self.device)  #remove dependence on age and type
+                state = torch.FloatTensor([state], device=self.device)  #remove dependence on age and type
                 q_values = self.network(state)
                 return q_values.max(1)[1].view(1, 1).detach().item()
         else:

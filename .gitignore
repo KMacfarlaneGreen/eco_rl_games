@@ -98,3 +98,5 @@ io/
 *.npy
 *.gz
 *./test_experiment*
+slurm*.out
+*.sh
