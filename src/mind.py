@@ -58,13 +58,13 @@ class Mind:
             with torch.no_grad():
                 state = torch.FloatTensor([state], device=self.device)  #remove dependence on age and type
                 q_values = self.network(state)
-                return q_values.max(1)[1].view(1, 1).detach().item()
+                return q_values.max(1)[1].view(1, 1).detach().item(), q_values
         else:
             rand = [[random.randrange(self.num_actions)]] # returns random choice of either 0 or 1 corresponding to possible actions
         #therefore I need to change this so that this choice depends on the agent's movement probability
         #this probability will then be parametrised and updated for optimisation
         #although current set up is equivalent to p=0.5
-            return torch.tensor(rand, device=self.device, dtype=torch.long).detach().item()
+            return torch.tensor(rand, device=self.device, dtype=torch.long).detach().item(), [0.5,0.5]
 
     def remember(self, vals):     #I don't have 'vals' what is my equivalent property? - number of agents at each node? Not actually sure this corresponds to the vals property
         self.memory.push(vals)    #saves current state, action, next stae and reward to replay memory

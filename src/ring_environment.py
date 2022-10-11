@@ -45,6 +45,7 @@ class Environment:
         self.history = []        #think about what quantities I want to save
         #self.id_track = []       #how to define, intitialise and store them 
         self.records = []
+        self.q_values = np.zeros((max_iteration, num_agents, 2))
 
         if name:
             self.name = name
@@ -170,6 +171,12 @@ class Environment:
         f = gzip.GzipFile('%s/crystal.npy.gz' % self.name, "w")
         np.save(f, self.crystal)
         f.close()
+
+    def save_qs(self, episode):    
+        f = gzip.GzipFile('%s/q_values.npy.gz' % self.name, "w")
+        np.save(f, self.q_values)
+        f.close()
+
 
     def save_agents(self):
         self.lock.acquire()    #what is lock? Need to edit how things are saved because what I want to save is different 

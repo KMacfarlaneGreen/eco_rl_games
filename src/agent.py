@@ -12,6 +12,7 @@ class Agent:
         self.input_size = mind.get_input_size()      #currently set to 1 - not sure correct?
         self.output_size = mind.get_output_size()
         self.decision = None
+        self.q_vals = None
 
     def update(self, reward, done):
         assert self.action != None, 'No Action'
@@ -31,8 +32,8 @@ class Agent:
         pass
 
     def decide(self, state):
-        self.action = self.mind.decide(state)
-        return self.action
+        self.action, self.q_vals = self.mind.decide(state)
+        return self.action, self.q_vals
 
     def get_state(self):
         return self.current_state

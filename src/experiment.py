@@ -35,7 +35,8 @@ def play(map, episodes, iterations, eps=1e-6):
                 #print(agent_id)
                 agent_state = agent.get_state()
                 #print('state/no agents on node',agent_state)
-                action = agent.decide(agent_state)
+                action, q_vals = agent.decide(agent_state)
+                map.q_values[int(t)][int(agent_id)] = q_vals
                 #print('action',action)
                 rew = map.step(agent, action)
                 #print('reward',rew)
@@ -64,6 +65,7 @@ def play(map, episodes, iterations, eps=1e-6):
 
             state = next_state
         map.save(episode)
+        map.save_qs(episode)
     print("SIMULATION IS FINISHED.")
 
 
