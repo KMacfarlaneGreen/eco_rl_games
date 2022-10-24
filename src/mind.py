@@ -6,19 +6,20 @@ import torch.multiprocessing as mp
 
 import random
 import numpy as np
+from zmq import device
 
 class Mind:
     BATCH_SIZE = 256
     GAMMA = 0.98      #discount rate
     EPS_START = 0.9999   #exploration rate
     EPS_END = 0
-    EPS_DECAY = 100000
+    EPS_DECAY = 3000     #100000
     TAU = 0.05
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def __init__(self, input_size, num_actions, lock, queue, destination = None, memory_length=1000000):
-        self.network = DQN(input_size, num_actions)
-        self.target_network = DQN(input_size, num_actions)
+        self.network = DQN(input_size, num_actions).to(device)
+        self.target_network = DQN(input_size, num_actions).to(device)
         self.lock = lock
         self.queue = queue        #what is queue?
         self.losses = []
@@ -29,7 +30,7 @@ class Mind:
 
 
         self.memory = ReplayMemory(memory_length)
-        self.optimizer = optim.Adam(self.network.parameters(), 0.001)
+        self.optimizer = optim.Adam(self.network.parameters(), 0.001).to(device)
         self.steps_done = 0
         self.num_actions = num_actions
 
@@ -56,24 +57,24 @@ class Mind:
         self.steps_done += 1                              #to do: add in this steps done attribute
         if sample > eps_threshold:
             with torch.no_grad():
-                state = torch.FloatTensor([state], device=self.device)  #remove dependence on age and type
-                q_values = self.network(state)
-                return q_values.max(1)[1].view(1, 1).detach().item(), q_values
+                state = torch.tensor([state]).to(device) #remove dependence on age and type
+                q_values = self.network(state).to(device)
+                return q_values.max(1)[1].view(1, 1).detach().item().to(device), q_values
         else:
             rand = [[random.randrange(self.num_actions)]] # returns random choice of either 0 or 1 corresponding to possible actions
         #therefore I need to change this so that this choice depends on the agent's movement probability
         #this probability will then be parametrised and updated for optimisation
         #although current set up is equivalent to p=0.5
-            return torch.tensor(rand, device=self.device, dtype=torch.long).detach().item(), [0.5,0.5]
+            return torch.tensor(rand, dtype=torch.long).detach().item().to(device), [0.5,0.5]
 
     def remember(self, vals):     #I don't have 'vals' what is my equivalent property? - number of agents at each node? Not actually sure this corresponds to the vals property
         self.memory.push(vals)    #saves current state, action, next stae and reward to replay memory
 
     
     def copy(self):
-        net = DQN(self.input_size, self.num_actions)
-        target_net = DQN(self.input_size, self.num_actions)
-        optimizer = optim.Adam(net.parameters(), 0.001)
+        net = DQN(self.input_size, self.num_actions).to(device)
+        target_net = DQN(self.input_size, self.num_actions).to(device)
+        optimizer = optim.Adam(net.parameters(), 0.001).to(device)
         optimizer.load_state_dict(self.optimizer.state_dict())
         net.load_state_dict(self.network.state_dict())
         target_net.load_state_dict(self.target_network.state_dict())
@@ -106,10 +107,10 @@ class Mind:
         #to do: think about this function and how to adapt it to return the data I want as inputs (most done in agents?)
         transitions = self.memory.sample(self.BATCH_SIZE)
         batch_state, batch_action, batch_next_state, batch_reward, batch_done = zip(*transitions)
-        batch_state = torch.cat([torch.FloatTensor(s) for s in batch_state]).view((self.BATCH_SIZE, 3))
-        batch_action = torch.cat([torch.LongTensor(s) for s in batch_action]).view((self.BATCH_SIZE, 1))
-        batch_reward = torch.cat([torch.FloatTensor(s) for s in batch_reward])
-        batch_next_state = torch.cat([torch.FloatTensor(s) for s in batch_next_state])
+        batch_state = torch.cat([torch.tensor(s) for s in batch_state]).view((self.BATCH_SIZE, 3)).to(device)
+        batch_action = torch.cat([torch.tensor(s) for s in batch_action]).view((self.BATCH_SIZE, 1)).to(device)
+        batch_reward = torch.cat([torch.tensor(s) for s in batch_reward]).to(device)
+        batch_next_state = torch.cat([torch.tensor(s) for s in batch_next_state]).to(device)
 
         #print('state size', batch_state.size(), 'action size', batch_action.size())
         #print('state [1]', batch_state[0], 'action 1', batch_action[0])
@@ -121,7 +122,8 @@ class Mind:
         if len(self.memory) < self.BATCH_SIZE:
             return 1
         processes = []
-        for _ in range(self.num_cpu):      #does this only train on cpus?
+        num_processes = 4 
+        for _ in range(num_processes):      #does this only train on cpus?
             data = self.get_data()
             p = mp.Process(target=self.opt, args=(data, self.lock, self.queue))
             p.start()
