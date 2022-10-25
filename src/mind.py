@@ -3,6 +3,10 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import torch.multiprocessing as mp
+#try:
+    #mp.set_start_method('spawn')
+#except RuntimeError:
+    #pass
 
 import random
 import numpy as np

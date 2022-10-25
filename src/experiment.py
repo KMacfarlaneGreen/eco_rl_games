@@ -68,14 +68,14 @@ def play(map, episodes, iterations, eps=1e-6):
         map.save_qs(episode)
     print("SIMULATION IS FINISHED.")
 
-
 if __name__ == '__main__':
+
     [_, name, iterations] = sys.argv
 
     np.random.seed(1)
     random.seed(1)
     torch.manual_seed(1)
-
+    torch.multiprocessing.set_start_method('spawn')
     episodes = 1
     iterations = int(iterations)
     l = Lock()
