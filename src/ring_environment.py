@@ -13,7 +13,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torch.multiprocessing as mp
 
-from multiprocessing import Queue, Lock
+from torch.multiprocessing import SimpleQueue, Lock
 
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -34,7 +34,7 @@ class Environment:
             self.lock = lock
         else:
             self.lock = Lock()
-        self.mind = Mind(input_size, num_actions, self.lock, Queue())
+        self.mind = Mind(input_size, num_actions, self.lock, SimpleQueue())
 
         #to do: sort mind function:
         #- inputs, outputs, handling each agent's individual mind

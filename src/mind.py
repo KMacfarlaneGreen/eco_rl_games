@@ -3,10 +3,10 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 import torch.multiprocessing as mp
-#try:
-    #mp.set_start_method('spawn')
-#except RuntimeError:
-    #pass
+try:
+    mp.set_start_method('forkserver')
+except RuntimeError:
+    pass
 
 import random
 import numpy as np
@@ -62,8 +62,8 @@ class Mind:
         if sample > eps_threshold:
             with torch.no_grad():
                 state = torch.FloatTensor([state]).to(self.device) #remove dependence on age and type
-                q_values = self.network(state).to(device = 'cpu')
-                return q_values.max(1)[1].view(1, 1).detach().item(), q_values
+                q_values = self.network(state)
+                return q_values.max(1)[1].view(1, 1).detach().item(), q_values.to(device = 'cpu')
         else:
             rand = [[random.randrange(self.num_actions)]] # returns random choice of either 0 or 1 corresponding to possible actions
         #therefore I need to change this so that this choice depends on the agent's movement probability
@@ -127,7 +127,7 @@ class Mind:
             return 1
         processes = []
         num_processes = 1 
-        for _ in range(self.num_cpu):      #does this only train on cpus?
+        for _ in range(self.num_cpu):     
             data = self.get_data()
             p = mp.Process(target=self.opt, args=(data, self.lock, self.queue))
             p.start()

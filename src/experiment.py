@@ -1,7 +1,7 @@
 from ring_environment import Environment
 
 from itertools import count
-from multiprocessing import Process, Lock
+from torch.multiprocessing import Process, Lock
 
 import time
 import random
@@ -75,7 +75,7 @@ if __name__ == '__main__':
     np.random.seed(1)
     random.seed(1)
     torch.manual_seed(1)
-    torch.multiprocessing.set_start_method('spawn')
+    #torch.multiprocessing.set_start_method('spawn')
     episodes = 1
     iterations = int(iterations)
     l = Lock()
