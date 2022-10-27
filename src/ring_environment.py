@@ -13,7 +13,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torch.multiprocessing as mp
 
-from torch.multiprocessing import SimpleQueue, Lock
+from torch.multiprocessing import Queue, Lock
 
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -34,7 +34,7 @@ class Environment:
             self.lock = lock
         else:
             self.lock = Lock()
-        self.mind = Mind(input_size, num_actions, self.lock, SimpleQueue())
+        self.mind = Mind(input_size, num_actions, self.lock, Queue())
 
         #to do: sort mind function:
         #- inputs, outputs, handling each agent's individual mind
@@ -100,16 +100,16 @@ class Environment:
             assert rew != None
         else:
             assert rew != None     #raise assertion error if node value at agent location is zero
-        done = False
+        done = False               #done set here
         self.update_agent(agent, rew, done)
         agent.clear_decision()
         return rew
 
 
     def update_agent(self, agent, rew, done):   
-        state = self.get_agent_state(agent)
-        agent.set_next_state(state)                 
-        agent.update(rew, done)
+        state = self.get_agent_state(agent)  #called after agent has moved
+        agent.set_next_state(state)     #therefore set to next state             
+        agent.update(rew, done)   #pushes transition to memory
         return rew
 
     def update(self):

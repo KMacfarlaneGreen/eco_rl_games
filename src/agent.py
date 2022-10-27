@@ -23,7 +23,7 @@ class Agent:
 
         self.action = None
         if not done:
-            self.current_state, self.next_state = self.next_state, None
+            self.current_state, self.next_state = self.next_state, None   
         else:
             self.current_state, self.next_state = None, None
 
