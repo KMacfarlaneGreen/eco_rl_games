@@ -13,7 +13,6 @@ import torch
 import numpy as np
 
 def play(map, episodes, iterations, eps=1e-6):
-    #to do:edit so can run with my environment
     # map.configure(prey_reward, stuck_penalty, agent_max_age)
     agents = map.get_agents()
     #print(agents)
@@ -75,7 +74,6 @@ if __name__ == '__main__':
     np.random.seed(1)
     random.seed(1)
     torch.manual_seed(1)
-    #torch.multiprocessing.set_start_method('spawn')
     episodes = 1
     iterations = int(iterations)
     l = Lock()
