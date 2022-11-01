@@ -66,6 +66,7 @@ def play(map, episodes, iterations, eps=1e-6):
         map.save(episode)
         map.save_qs(episode)
     print("SIMULATION IS FINISHED.")
+    print(time_elapsed)
 
 if __name__ == '__main__':
 

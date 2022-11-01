@@ -62,19 +62,16 @@ class Mind:
             rand = [[random.randrange(self.num_actions)]] # returns random choice of either 0 or 1 corresponding to possible actions
             return torch.tensor(rand, dtype=torch.long).detach().item(), [0.5,0.5]
 
+    def decide_prob(self, state):
+        with torch.no_grad():
+                state = torch.FloatTensor([state], device = self.device) #remove dependence on age and type
+                q_values = self.network(state)
+                q_prob = (np.exp(q_values[0])/(np.exp(q_values[0])+np.exp(q_values[1])))
+                action = np.random.binomial(10, q_prob)
+        return action, q_values
+
     def remember(self, vals):     
         self.memory.push(vals)    #saves current state, action, next stae and reward to replay memory
-
-    
-    #def copy(self):
-        #net = DQN(self.input_size, self.num_actions).to(device)
-        #target_net = DQN(self.input_size, self.num_actions).to(device)
-        #optimizer = optim.Adam(net.parameters(), 0.001).to(device)
-        #optimizer.load_state_dict(self.optimizer.state_dict())
-        #net.load_state_dict(self.network.state_dict())
-        #target_net.load_state_dict(self.target_network.state_dict())
-
-        #return net, target_net, optimizer
 
     def opt(self, data, lock, queue):
         batch_state, batch_action, batch_next_state, batch_done, expected_q_values = data

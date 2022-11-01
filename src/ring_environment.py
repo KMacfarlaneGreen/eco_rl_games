@@ -59,7 +59,7 @@ class Environment:
                                                                   #for me I just want to save the number of agents at each node at each iteration (map)
             self.iteration = 0
         else:
-            assert False, "There exists an experiment with this name."
+            assert False, "There exists an experiment with this name." 
 
     def get_agents(self):
         return self.agents
@@ -184,10 +184,8 @@ class Environment:
         self.lock.release()
 
     def get_agent_state(self, agent):
-        #think this returns the state of the square observation or 'field of view' for each agent
-        #in that case I need to change it to return the current node location and number of agents at that location
-        #mark as updated
-        #extend this to include number of agents at neighbouring nodes - return [num_left, num_loc, num_right]
+        #this returns the state of the square observation or 'field of view' for each agent
+        #include number of agents at neighbouring nodes - return [num_left, num_loc, num_right]
         (i)= agent.get_loc()
         if i == 0.0:
             left_loc = 99.0
