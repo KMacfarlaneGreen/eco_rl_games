@@ -57,7 +57,7 @@ class Mind:
             with torch.no_grad():
                 state = torch.FloatTensor([state], device = self.device) #remove dependence on age and type
                 q_values = self.network(state)
-                return q_values.max(1)[1].view(1, 1).detach().item(), q_values
+                return q_values.max(1)[1].view(1, 1).detach().item(), q_values.squeeze().tolist()
         else:
             rand = [[random.randrange(self.num_actions)]] # returns random choice of either 0 or 1 corresponding to possible actions
             return torch.tensor(rand, dtype=torch.long).detach().item(), [0.5,0.5]
