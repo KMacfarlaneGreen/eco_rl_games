@@ -66,8 +66,8 @@ class Mind:
         with torch.no_grad():
                 state = torch.FloatTensor([state], device = self.device) #remove dependence on age and type
                 q_values = self.network(state)
-                q_prob = (np.exp(q_values[0])/(np.exp(q_values[0])+np.exp(q_values[1])))
-                action = np.random.binomial(10, q_prob)
+                q_prob = (np.exp(q_values[0][0])/(np.exp(q_values[0][0])+np.exp(q_values[0][1])))
+                action = np.random.binomial(1, q_prob)
         return action, q_values
 
     def remember(self, vals):     

@@ -45,7 +45,7 @@ class Environment:
         self.history = []        #think about what quantities I want to save
         #self.id_track = []       #how to define, intitialise and store them 
         self.records = []
-        self.q_values = np.zeros((max_iteration, num_agents, 2))
+        self.q_values = np.zeros((max_iteration, num_agents, 3))
 
         if name:
             self.name = name

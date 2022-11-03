@@ -32,7 +32,7 @@ class Agent:
         pass
 
     def decide(self, state):
-        self.action, self.q_vals = self.mind.decide(state)
+        self.action, self.q_vals = self.mind.decide(state)   #decision function choice
         return self.action, self.q_vals
 
     def get_state(self):
