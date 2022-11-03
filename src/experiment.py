@@ -35,10 +35,8 @@ def play(map, episodes, iterations, eps=1e-6):
                 agent_state = agent.get_state()
                 #print('state/no agents on node',agent_state)
                 action, q_vals = agent.decide(agent_state)
-                agent_dec = []
-                agent_dec.append(q_vals)
-                agent_dec.append(action)
-                map.q_values[int(t)][int(agent_id)] = agent_dec
+                map.q_values[int(t)][int(agent_id)] = q_vals
+                map.q_values[int(t)][int(agent_id)][2] = action
                 #print('action',action)
                 rew = map.step(agent, action)
                 #print('reward',rew)
