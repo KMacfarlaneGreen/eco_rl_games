@@ -13,9 +13,7 @@ import torch
 import numpy as np
 
 def play(map, episodes, iterations, eps=1e-6):
-    # map.configure(prey_reward, stuck_penalty, agent_max_age)
     agents = map.get_agents()
-    #print(agents)
     times = 0
     for episode in range(episodes):
         c = 0
@@ -26,23 +24,16 @@ def play(map, episodes, iterations, eps=1e-6):
 
             keys = ["tot_reward"]
             rews = {key: 0 for key in keys}       #change from dict to list?
-            #print(rews)
             counts = {key: 0 for key in keys}
-            #print(counts)
             for agent in agents:
                 agent_id = agent.get_id()
-                #print(agent_id)
                 agent_state = agent.get_state()
-                #print('state/no agents on node',agent_state)
                 action, q_vals = agent.decide(agent_state)
                 q_vals.append(action)
                 map.q_values[int(t)][int(agent_id)] = q_vals
-                #print('action',action)
                 rew = map.step(agent, action)
-                #print('reward',rew)
-                rews["tot_reward"] += rew     #name = A, B, prey 
+                rews["tot_reward"] += rew     
                 counts["tot_reward"] += 1
-                #print('cumulative reward',rews)
             
             map.record(rews)
 
@@ -85,4 +76,4 @@ if __name__ == '__main__':
     society = Environment
 
     play(society(100, num_actions = 2, name=name, max_iteration = int(iterations), num_agents = 20,
-        lock=l), 1, iterations) #check ordering
+        lock=l), 1, iterations)

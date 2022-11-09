@@ -29,21 +29,17 @@ class Environment:
         self.graph = nx.cycle_graph(self.node_num)
         self.nodes = list(self.graph.nodes)
         self.num_agents = num_agents
-        input_size = 3     #this should be the size of the observation space - how should the observation space be represented [num_left, num_loc, num_right]?
+        input_size = 3     #this should be the size of the observation space - [num_left, num_loc, num_right]?
         if lock:
             self.lock = lock
         else:
             self.lock = Lock()
         self.mind = Mind(input_size, num_actions, self.lock, Queue())
-
-        #to do: sort mind function:
-        #- inputs, outputs, handling each agent's individual mind
-        weights = self.mind.network.state_dict()  #needed? what does this do?
+        weights = self.mind.network.state_dict()  #needed? 
 
         self.max_iteration = max_iteration
         self.crystal = np.zeros((max_iteration, self.node_num, 1)) 
-        self.history = []        #think about what quantities I want to save
-        #self.id_track = []       #how to define, intitialise and store them 
+        self.history = []     
         self.records = []
         self.q_values = np.zeros((max_iteration, num_agents, 3))
 
@@ -53,10 +49,10 @@ class Environment:
         if not os.path.isdir(str(self.name)):
             os.mkdir(str(self.name))
             os.mkdir(str(self.name)+'/episodes')
-            self.map, self.agents, self.id_to_agent = self._generate_map()  #deleted self.loc_to_agent
+            self.map, self.agents, self.id_to_agent = self._generate_map()  
             self._set_initial_states()
-            self.crystal = np.zeros((max_iteration, self.node_num, 1)) #in segregation crystal is an array which saves the agent type, id and age at each location at each iteration
-                                                                  #for me I just want to save the number of agents at each node at each iteration (map)
+            self.crystal = np.zeros((max_iteration, node_num, 1)) 
+                                                                  #save the number of agents at each node at each iteration (map)
             self.iteration = 0
         else:
             assert False, "There exists an experiment with this name." 
@@ -68,34 +64,27 @@ class Environment:
         return self.map.copy()
 
     def move(self, agent):
-    #mark as updated
     #moves an agent to new node location following a decision to move left or right
-        (i) = loc = agent.get_loc()     #only need single index to correspond to single node 
-        (i_n) = to = agent.get_decision()  #decision returns the new location after performing action 0 for move left and 1 for move right
+        i = loc = agent.get_loc()   
+        i_n = to = agent.get_decision()  #decision returns the new location after performing action 0 for move left and 1 for move right
                 
         self.map[int(i)] -= 1         #remove an agent from the previous node
         self.map[int(i_n)] += 1       #add this agent to the new node 
-        agent.set_loc(to)         #set this new node location to the agent
-        #self.loc_to_agent[to] = agent        
-        #del self.loc_to_agent[loc]   #delete the previous entry in the dictionary - maybe this is causing problems if multiple agents are at the same location?
-        return self.map.copy()       #correct?
+        agent.set_loc(to)         #set this new node location to the agent        
+        return self.map.copy()      
 
     def step(self, agent, act):
-        #mark as updated
-        #function for calculating the local reward of each agent cumulative and global entropy reward should be calculated somewhere else - mind?
-        (i) = agent.get_loc() # current location - change to graph
-        #print('loc', i)
-        #print('loc to agent length', len(self.loc_to_agent))
-        #assert self.loc_to_agent[(i)]
-        (di) = act     #action 
-        (i_n) = self._add((i), (di))    #gives new location
-        agent.set_decision((i_n))
+        #function for calculating the local reward of each agent 
+        i = agent.get_loc() 
+        di = act     #action 
+        i_n = self._add(i, di)    #gives new location
+        agent.set_decision(i_n)
         self.move(agent)
         
         if self.map[int(i_n)] == 1.0:   #if agent has moved to a node where it is the only one present it receives a positive reward
             rew = 1                     
             assert rew != None                             
-        elif self.map[int(i_n)] > 1.0:  #if agent moves to a node where there are also other agents then it recieves a negatibve reward
+        elif self.map[int(i_n)] > 1.0:  #if agent moves to a node where there are also other agents then it recieves a negative reward
             rew = -1
             assert rew != None
         else:
@@ -113,12 +102,10 @@ class Environment:
         return rew
 
     def update(self):
-        #mark as updated
         self.iteration += 1
-        self.history.append(self.map.copy())     #do we want our history to represent the whole graph?
+        self.history.append(self.map.copy())    
         cumulative_reward = self.records[self.iteration-1]["tot_reward"]
-        self.mind.train()   #does this need an alternative input to vals_to_names? 
-        #need to work out how training functions will work with each individual being trained in a decentralised manner
+        self.mind.train()  
         agent_ids = []
         agent_locs = []
         for agent in self.agents:
@@ -128,7 +115,6 @@ class Environment:
             agent_ids.append(str(idx))
             agent_locs.append(str(i))
 
-        #self.id_track.append(id_track)
         agent_ids = " ".join(agent_ids)
         agent_locs = " ".join(agent_locs)
         iteration_reward = str(cumulative_reward)
@@ -138,8 +124,8 @@ class Environment:
 
         if self.iteration == self.max_iteration - 1:
             losses = self.mind.get_losses()
-            np.save("%s/episodes/loss.npy" % self.name, np.array(losses))     #Will eventually want to save the training losses
-            
+            np.save("%s/episodes/loss.npy" % self.name, np.array(losses))     
+
 
     def record(self, rews):
         self.records.append(rews)    #rewards goes to records
@@ -156,14 +142,14 @@ class Environment:
 
 
     def save_agents(self):
-        self.lock.acquire()    #what is lock? Need to edit how things are saved because what I want to save is different 
+        self.lock.acquire()   
         pickle.dump(self.agents, open("agents/agent_%s.p" % (self.name), "wb" ))
         self.lock.release()
 
     def get_agent_state(self, agent):
         #this returns the state of the square observation or 'field of view' for each agent
         #include number of agents at neighbouring nodes - return [num_left, num_loc, num_right]
-        (i)= agent.get_loc()
+        i = agent.get_loc()
         if i == 0.0:
             left_loc = self.node_num
         else:
@@ -181,7 +167,6 @@ class Environment:
         return fov
 
     def _to_csv(self, episode):
-        #work out what want to save and how and then adapt this 
         with open("episodes/%s_%s.csv" % (episode, self.name), 'w') as f:
             f.write(', '.join(self.records[0].keys()) + '\n')
             proto = ", ".join(['%.3f' for _ in range(len(self.records[0]))]) + '\n'
@@ -192,14 +177,12 @@ class Environment:
 
     def _generate_map(self):
         #generates representation of environment in a given state
-        #rewrite this function to give graph with a given number of agents on each node
+        #graph with a given number of agents on each node
         #where:
         # map = graph with n agents on each node (state of environment)
         # agents = agents
         # loc_to_agent = location of each agent   (currently removed - not sure needed for me) 
         # id_to_agent = id of each agent
-        # work out how to include mind networks
-        # Mark as updated
         map = np.zeros(self.size)   #index corresponds to graph node i.e. map[0] = 1 means there is one agent on node zero
         #loc_to_agent = {}
         id_to_agent = {}
@@ -210,7 +193,6 @@ class Environment:
             init_nodes[j] = np.random.choice(self.nodes)
             mind = self.mind
             agent = Agent(idx, (init_nodes[j]), mind)
-            #loc_to_agent[(init_nodes[j])] = agent   #float loc
             id_to_agent[idx] = agent
             agents.append(agent)
             idx += 1
@@ -220,14 +202,9 @@ class Environment:
                 if i[0] == init_nodes[x]:
                     map[i[0]] += 1
             
-            #val = np.random.choice(self.vals, p=self.probs)   #val = number of agents on node i
-                                                                #not a random choice - should this come after or within agent loop/assignation
-                                                                #similar structure if val not == 0?
-                                                                #how to assign number of agents to graph originally?
         return map, agents, id_to_agent     #deleted loc_to_agent
 
     def _add(self, loc, act):
-        #mark completed
         loc
         act  #action (0=left, 1=right)
         if act == 0:
@@ -242,10 +219,9 @@ class Environment:
                 to = loc + 1.0
             else:
                 to = 0.0
-        return to #(i_n)
+        return to 
 
     def predefined_initialization(self, file):
-        # not sure what this does
         with open(file) as f:
             for i, line in enumerate(f):
                 if not i:
@@ -258,7 +234,6 @@ class Environment:
             agent.set_current_state(state)
 
     def _count(self, arr):
-        # not sure what this does - don't think I need it 
         cnt = np.zeros(len(self.vals))
         arr = arr.reshape(-1)
         for elem in arr:

@@ -9,7 +9,7 @@ class Agent:
         self.action = None
         self.next_state = None
         self.mind = mind
-        self.input_size = mind.get_input_size()      #currently set to 1 - not sure correct?
+        self.input_size = mind.get_input_size()     
         self.output_size = mind.get_output_size()
         self.decision = None
         self.q_vals = None
