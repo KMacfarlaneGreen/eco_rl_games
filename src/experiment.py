@@ -1,7 +1,7 @@
 from ring_environment import Environment
 
 from itertools import count
-from multiprocessing import Process, Lock
+from torch.multiprocessing import Process, Lock
 
 import time
 import random
@@ -13,7 +13,6 @@ import torch
 import numpy as np
 
 def play(map, episodes, iterations, eps=1e-6):
-    #to do:edit so can run with my environment
     # map.configure(prey_reward, stuck_penalty, agent_max_age)
     agents = map.get_agents()
     #print(agents)
@@ -36,6 +35,7 @@ def play(map, episodes, iterations, eps=1e-6):
                 agent_state = agent.get_state()
                 #print('state/no agents on node',agent_state)
                 action, q_vals = agent.decide(agent_state)
+                q_vals.append(action)
                 map.q_values[int(t)][int(agent_id)] = q_vals
                 #print('action',action)
                 rew = map.step(agent, action)
@@ -67,15 +67,15 @@ def play(map, episodes, iterations, eps=1e-6):
         map.save(episode)
         map.save_qs(episode)
     print("SIMULATION IS FINISHED.")
-
+    print(time_elapsed)
 
 if __name__ == '__main__':
+
     [_, name, iterations] = sys.argv
 
     np.random.seed(1)
     random.seed(1)
     torch.manual_seed(1)
-
     episodes = 1
     iterations = int(iterations)
     l = Lock()

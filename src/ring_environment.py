@@ -13,7 +13,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torch.multiprocessing as mp
 
-from multiprocessing import Queue, Lock
+from torch.multiprocessing import Queue, Lock
 
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -45,7 +45,7 @@ class Environment:
         self.history = []        #think about what quantities I want to save
         #self.id_track = []       #how to define, intitialise and store them 
         self.records = []
-        self.q_values = np.zeros((max_iteration, num_agents, 2))
+        self.q_values = np.zeros((max_iteration, num_agents, 3))
 
         if name:
             self.name = name
@@ -59,7 +59,7 @@ class Environment:
                                                                   #for me I just want to save the number of agents at each node at each iteration (map)
             self.iteration = 0
         else:
-            assert False, "There exists an experiment with this name."
+            assert False, "There exists an experiment with this name." 
 
     def get_agents(self):
         return self.agents
@@ -100,16 +100,16 @@ class Environment:
             assert rew != None
         else:
             assert rew != None     #raise assertion error if node value at agent location is zero
-        done = False
+        done = False               #done set here
         self.update_agent(agent, rew, done)
         agent.clear_decision()
         return rew
 
 
     def update_agent(self, agent, rew, done):   
-        state = self.get_agent_state(agent)
-        agent.set_next_state(state)                 
-        agent.update(rew, done)
+        state = self.get_agent_state(agent)  #called after agent has moved
+        agent.set_next_state(state)     #therefore set to next state             
+        agent.update(rew, done)   #pushes transition to memory
         return rew
 
     def update(self):
@@ -184,10 +184,8 @@ class Environment:
         self.lock.release()
 
     def get_agent_state(self, agent):
-        #think this returns the state of the square observation or 'field of view' for each agent
-        #in that case I need to change it to return the current node location and number of agents at that location
-        #mark as updated
-        #extend this to include number of agents at neighbouring nodes - return [num_left, num_loc, num_right]
+        #this returns the state of the square observation or 'field of view' for each agent
+        #include number of agents at neighbouring nodes - return [num_left, num_loc, num_right]
         (i)= agent.get_loc()
         if i == 0.0:
             left_loc = 99.0
