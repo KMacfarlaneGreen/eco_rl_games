@@ -33,21 +33,17 @@ class Environment:
         self.nodes = list(self.graph.nodes)
         node_num = len(self.nodes)
         self.num_agents = num_agents
-        input_size = 5    #this should be the size of the observation space - how should the observation space be represented [num_loc,num_left,num_up,num_right,num_down]?
+        input_size = 5    #size of the observation space - [num_loc,num_left,num_up,num_right,num_down]?
         if lock:
             self.lock = lock
         else:
             self.lock = Lock()
         self.mind = Mind(input_size, num_actions, self.lock, Queue())
-
-        #to do: sort mind function:
-        #- inputs, outputs, handling each agent's individual mind
-        weights = self.mind.network.state_dict()  #needed? what does this do?
+        weights = self.mind.network.state_dict() 
 
         self.max_iteration = max_iteration
         self.crystal = np.zeros((max_iteration, node_num, 1)) 
-        self.history = []        #think about what quantities I want to save
-        #self.id_track = []       #how to define, intitialise and store them 
+        self.history = []      
         self.records = []
         self.q_values = np.zeros((max_iteration, num_agents, 3))
 
@@ -57,10 +53,9 @@ class Environment:
         if not os.path.isdir(str(self.name)):
             os.mkdir(str(self.name))
             os.mkdir(str(self.name)+'/episodes')
-            self.map, self.agents, self.id_to_agent = self._generate_map()  #deleted self.loc_to_agent
+            self.map, self.agents, self.id_to_agent = self._generate_map()  
             self._set_initial_states()
-            self.crystal = np.zeros((max_iteration, node_num, 1)) #in segregation crystal is an array which saves the agent type, id and age at each location at each iteration
-                                                                  #for me I just want to save the number of agents at each node at each iteration (map)
+            self.crystal = np.zeros((max_iteration, node_num, 1)) 
             self.iteration = 0
         else:
             assert False, "There exists an experiment with this name." 
@@ -73,33 +68,27 @@ class Environment:
 
     def move(self, agent):
     #mark as updated
-    #moves an agent to new node location following a decision to move left or right
-        (i) = loc = agent.get_loc()     #only need single index to correspond to single node 
-        (i_n) = to = agent.get_decision()  #decision returns the new location after performing action 0 for move left and 1 for move right
+    #moves an agent to new node location following a decision to move 
+        i = loc = agent.get_loc()     
+        i_n = to = agent.get_decision()  #decision returns the new location after performing action 0 for move left and 1 for move right etc.
                 
         self.map[int(i)] -= 1         #remove an agent from the previous node
         self.map[int(i_n)] += 1       #add this agent to the new node 
         agent.set_loc(to)         #set this new node location to the agent
-        #self.loc_to_agent[to] = agent        
-        #del self.loc_to_agent[loc]   #delete the previous entry in the dictionary - maybe this is causing problems if multiple agents are at the same location?
-        return self.map.copy()       #correct?
+        return self.map.copy()       
 
     def step(self, agent, act):
-        #mark as updated
-        #function for calculating the local reward of each agent cumulative and global entropy reward should be calculated somewhere else - mind?
-        (i) = agent.get_loc() # current location - change to graph
-        #print('loc', i)
-        #print('loc to agent length', len(self.loc_to_agent))
-        #assert self.loc_to_agent[(i)]
-        (di) = act     #action 
-        (i_n) = self._add((i), (di))    #gives new location
-        agent.set_decision((i_n))
+        #function for calculating the local reward of each agent
+        i = agent.get_loc() 
+        di = act     #action 
+        i_n = self._add(i, di)    #gives new location - change add for grid
+        agent.set_decision(i_n)
         self.move(agent)
         
         if self.map[int(i_n)] == 1.0:   #if agent has moved to a node where it is the only one present it receives a positive reward
             rew = 1                     
             assert rew != None                             
-        elif self.map[int(i_n)] > 1.0:  #if agent moves to a node where there are also other agents then it recieves a negatibve reward
+        elif self.map[int(i_n)] > 1.0:  #if agent moves to a node where there are also other agents then it recieves a negative reward
             rew = -1
             assert rew != None
         else:
@@ -117,12 +106,10 @@ class Environment:
         return rew
 
     def update(self):
-        #mark as updated
         self.iteration += 1
-        self.history.append(self.map.copy())     #do we want our history to represent the whole graph?
+        self.history.append(self.map.copy())    
         cumulative_reward = self.records[self.iteration-1]["tot_reward"]
-        self.mind.train()   #does this need an alternative input to vals_to_names? 
-        #need to work out how training functions will work with each individual being trained in a decentralised manner
+        self.mind.train()   
         agent_ids = []
         agent_locs = []
         for agent in self.agents:
@@ -132,7 +119,6 @@ class Environment:
             agent_ids.append(str(idx))
             agent_locs.append(str(i))
 
-        #self.id_track.append(id_track)
         agent_ids = " ".join(agent_ids)
         agent_locs = " ".join(agent_locs)
         iteration_reward = str(cumulative_reward)
@@ -160,13 +146,14 @@ class Environment:
 
 
     def save_agents(self):
-        self.lock.acquire()    #what is lock? Need to edit how things are saved because what I want to save is different 
+        self.lock.acquire()    
         pickle.dump(self.agents, open("agents/agent_%s.p" % (self.name), "wb" ))
         self.lock.release()
 
     def get_agent_state(self, agent):
+        #to do: update for grid
         #this returns the state of the square observation or 'field of view' for each agent
-        #include number of agents at neighbouring nodes - return [num_left, num_loc, num_right]
+        #include number of agents at neighbouring nodes - return [num_loc, num_left, num_up, num_right, num_down]
         (i)= agent.get_loc()
         if i == 0.0:
             left_loc = 99.0
@@ -231,7 +218,7 @@ class Environment:
         return map, agents, id_to_agent     #deleted loc_to_agent
 
     def _add(self, loc, act):
-        #mark completed
+       #to do: update for grid
         loc
         act  #action (0=left, 1=right, 2=up, 3=down)
         if act == 0:

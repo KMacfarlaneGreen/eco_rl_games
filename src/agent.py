@@ -19,7 +19,7 @@ class Agent:
         assert reward != None, 'No Reward'
         self.mind.remember([[[self.current_state]], [self.action], [[self.next_state]], [reward], [done]])
 
-        loss = self.mind.train()
+        #loss = self.mind.train()    #do I need this here or is it slowing down my code for no reason?
 
         self.action = None
         if not done:
