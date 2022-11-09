@@ -13,7 +13,7 @@ class Mind:
     EPS_START = 0.9999   #exploration rate
     EPS_END = 0
     EPS_DECAY = 100000
-    TAU = 0.05
+    TAU = 0.05      #think this is the learning rate/rate of averaging for updating parameters in the target network
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def __init__(self, input_size, num_actions, lock, queue, destination = None, memory_length=1000000):
