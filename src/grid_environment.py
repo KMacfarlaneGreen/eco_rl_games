@@ -1,3 +1,5 @@
+#Environment to go from ring to grid
+
 import os
 import gzip
 import math
@@ -22,14 +24,16 @@ from agent import Agent
 from mind import Mind
 
 class Environment:
-    def __init__(self, size, num_actions = 2, name = None, 
+    def __init__(self, size, num_actions = 4, name = None, 
             max_iteration = 5000, num_agents = 20, lock = None):
        
-        self.node_num = self.size = size
-        self.graph = nx.cycle_graph(self.node_num)
+        dim1 = self.size[0]
+        dim2 = self.size[1]
+        self.graph = nx.grid_2d_graph(dim1, dim2)
         self.nodes = list(self.graph.nodes)
+        node_num = len(self.nodes)
         self.num_agents = num_agents
-        input_size = 3     #this should be the size of the observation space - how should the observation space be represented [num_left, num_loc, num_right]?
+        input_size = 5    #this should be the size of the observation space - how should the observation space be represented [num_loc,num_left,num_up,num_right,num_down]?
         if lock:
             self.lock = lock
         else:
@@ -41,7 +45,7 @@ class Environment:
         weights = self.mind.network.state_dict()  #needed? what does this do?
 
         self.max_iteration = max_iteration
-        self.crystal = np.zeros((max_iteration, self.node_num, 1)) 
+        self.crystal = np.zeros((max_iteration, node_num, 1)) 
         self.history = []        #think about what quantities I want to save
         #self.id_track = []       #how to define, intitialise and store them 
         self.records = []
@@ -55,7 +59,7 @@ class Environment:
             os.mkdir(str(self.name)+'/episodes')
             self.map, self.agents, self.id_to_agent = self._generate_map()  #deleted self.loc_to_agent
             self._set_initial_states()
-            self.crystal = np.zeros((max_iteration, self.node_num, 1)) #in segregation crystal is an array which saves the agent type, id and age at each location at each iteration
+            self.crystal = np.zeros((max_iteration, node_num, 1)) #in segregation crystal is an array which saves the agent type, id and age at each location at each iteration
                                                                   #for me I just want to save the number of agents at each node at each iteration (map)
             self.iteration = 0
         else:
@@ -139,7 +143,7 @@ class Environment:
         if self.iteration == self.max_iteration - 1:
             losses = self.mind.get_losses()
             np.save("%s/episodes/loss.npy" % self.name, np.array(losses))     #Will eventually want to save the training losses
-            
+        
 
     def record(self, rews):
         self.records.append(rews)    #rewards goes to records
@@ -165,10 +169,10 @@ class Environment:
         #include number of agents at neighbouring nodes - return [num_left, num_loc, num_right]
         (i)= agent.get_loc()
         if i == 0.0:
-            left_loc = self.node_num
+            left_loc = 99.0
         else:
             left_loc = i - 1.0 
-        if i < self.node_num:
+        if i < 99.0:
             right_loc = i + 1.0
         else:
             right_loc = 0.0
@@ -229,16 +233,16 @@ class Environment:
     def _add(self, loc, act):
         #mark completed
         loc
-        act  #action (0=left, 1=right)
+        act  #action (0=left, 1=right, 2=up, 3=down)
         if act == 0:
             #move left
             if loc == 0.0:
-                to = self.node_num
+                to = 99.0
             else:
                 to = loc - 1.0   
         if act == 1:
             #move right
-            if loc < self.node_num:
+            if loc < 99.0:
                 to = loc + 1.0
             else:
                 to = 0.0
