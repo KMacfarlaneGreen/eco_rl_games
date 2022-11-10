@@ -154,7 +154,7 @@ class Environment:
             left_loc = (self.node_num - 1)
         else:
             left_loc = i - 1.0 
-        if i < self.node_num:
+        if i < (self.node_num - 1):
             right_loc = i + 1.0
         else:
             right_loc = 0.0
@@ -215,7 +215,7 @@ class Environment:
                 to = loc - 1.0   
         if act == 1:
             #move right
-            if loc < self.node_num:
+            if loc < (self.node_num - 1):
                 to = loc + 1.0
             else:
                 to = 0.0
