@@ -12,7 +12,7 @@ class Mind:
     GAMMA = 0.98      #discount rate
     EPS_START = 0.9999   #exploration rate
     EPS_END = 0
-    EPS_DECAY = 100000
+    EPS_DECAY = 3000
     TAU = 0.05
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

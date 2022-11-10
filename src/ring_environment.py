@@ -51,7 +51,7 @@ class Environment:
             os.mkdir(str(self.name)+'/episodes')
             self.map, self.agents, self.id_to_agent = self._generate_map()  
             self._set_initial_states()
-            self.crystal = np.zeros((max_iteration, node_num, 1)) 
+            self.crystal = np.zeros((max_iteration, self.node_num, 1)) 
                                                                   #save the number of agents at each node at each iteration (map)
             self.iteration = 0
         else:
@@ -151,7 +151,7 @@ class Environment:
         #include number of agents at neighbouring nodes - return [num_left, num_loc, num_right]
         i = agent.get_loc()
         if i == 0.0:
-            left_loc = self.node_num
+            left_loc = (self.node_num - 1)
         else:
             left_loc = i - 1.0 
         if i < self.node_num:
@@ -210,7 +210,7 @@ class Environment:
         if act == 0:
             #move left
             if loc == 0.0:
-                to = self.node_num
+                to = (self.node_num - 1)
             else:
                 to = loc - 1.0   
         if act == 1:
