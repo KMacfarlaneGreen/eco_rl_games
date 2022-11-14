@@ -80,7 +80,7 @@ class Mind:
         max_next_q_values = self.target_network(batch_next_state).detach().max(1)[0]
 
         for i, done in enumerate(batch_done):
-            if not done:
+            if done == [False]:
                 expected_q_values[i] += (self.GAMMA * max_next_q_values[i])
 
         loss = F.mse_loss(current_q_values, expected_q_values.unsqueeze(1))
@@ -151,16 +151,16 @@ class DQN(nn.Module):
         super(DQN, self).__init__()
         self.l1 = nn.Linear(nS, self.nH) # 3
         self.out = nn.Linear(self.nH, nA)
-        #for m in self.modules():
-            #if isinstance(m, nn.Linear):
-                #nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
 
 
     def forward(self, x):
         x = F.relu((self.l1(x)))
         #x = x.mean(-1).mean(-1)
         #x = torch.cat([x], dim=1)
-        #out = self.out(x)
-        x= F.softmax(self.out(x), dim = 1)
-        return x
+        out = self.out(x)
+        #x= F.softmax(self.out(x), dim = 1)
+        return out
 
