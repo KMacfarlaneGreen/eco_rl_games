@@ -29,13 +29,14 @@ class Environment:
         self.graph = nx.cycle_graph(self.node_num)
         self.nodes = list(self.graph.nodes)
         self.num_agents = num_agents
-        input_size = 3     #this should be the size of the observation space - [num_left, num_loc, num_right]?
+        self.input_size = 3     #this should be the size of the observation space - [num_left, num_loc, num_right]?
+        self.num_actions = num_actions
         if lock:
             self.lock = lock
         else:
             self.lock = Lock()
-        self.mind = Mind(input_size, num_actions, self.lock, Queue())
-        weights = self.mind.network.state_dict()  #needed? 
+        self.mind = Mind(self.input_size, num_actions, self.lock, Queue())
+        #weights = self.mind.network.state_dict()  #needed? 
 
         self.max_iteration = max_iteration
         self.crystal = np.zeros((max_iteration, self.node_num, 1)) 
@@ -62,6 +63,9 @@ class Environment:
 
     def get_map(self):
         return self.map.copy()
+
+    def get_mindsize(self):
+        return self.input_size, self.num_actions
 
     def move(self, agent):
     #moves an agent to new node location following a decision to move left or right

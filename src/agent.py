@@ -22,7 +22,7 @@ class Agent:
         #loss = self.mind.train()    #do I need this here or is it slowing down my code for no reason?
 
         self.action = None
-        if not done:
+        if not done:     #is this doing the same as the other if not done statement - should it be done == False
             self.current_state, self.next_state = self.next_state, None   
         else:
             self.current_state, self.next_state = None, None

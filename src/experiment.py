@@ -1,7 +1,8 @@
 from ring_environment import Environment
+from mind import Mind
 
 from itertools import count
-from torch.multiprocessing import Process, Lock
+from torch.multiprocessing import Process, Lock, Queue
 
 import time
 import random
@@ -12,8 +13,11 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 import torch
 import numpy as np
 
+
 def play(map, episodes, iterations, eps=1e-6):
     agents = map.get_agents()
+    #obs_size, act_size = map.get_mindsize()
+    #mind = Mind(obs_size, act_size, Lock(), Queue())
     times = 0
     for episode in range(episodes):
         c = 0
@@ -36,6 +40,8 @@ def play(map, episodes, iterations, eps=1e-6):
                 counts["tot_reward"] += 1
             
             map.record(rews)
+
+            #mind.train()
 
             map.update()
 
