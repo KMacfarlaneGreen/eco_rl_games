@@ -33,7 +33,7 @@ class Mind:
         self.steps_done = 0
         self.num_actions = num_actions
 
-        self.target_network.load_state_dict(self.network.state_dict())
+        self.target_network.load_state_dict(self.network.state_dict())   #is this the same as setting theta* = theta?
         self.input_size = input_size
         self.num_cpu = mp.cpu_count() // 2
 
@@ -52,15 +52,15 @@ class Mind:
         sample = random.random()
         eps_threshold = self.EPS_END + (self.EPS_START - self.EPS_END) * \
             np.exp(-1. * self.steps_done / self.EPS_DECAY)
-        self.steps_done += 1                              #to do: add in this steps done attribute
-        if sample > eps_threshold:
-            with torch.no_grad():
-                state = torch.FloatTensor([state], device = self.device) #remove dependence on age and type
-                q_values = self.network(state)
+        self.steps_done += 1 
+        with torch.no_grad():
+            state = torch.FloatTensor([state], device = self.device) #remove dependence on age and type
+            q_values = self.network(state)                             #to do: add in this steps done attribute
+            if sample > eps_threshold:
                 return q_values.max(1)[1].view(1, 1).detach().item(), q_values.squeeze().tolist()
-        else:
-            rand = [[random.randrange(self.num_actions)]] # returns random choice of either 0 or 1 corresponding to possible actions
-            return torch.tensor(rand, dtype=torch.long).detach().item(), [0.5,0.5]
+            else:
+                rand = [[random.randrange(self.num_actions)]] # returns random choice of either 0 or 1 corresponding to possible actions
+                return torch.tensor(rand, dtype=torch.long).detach().item(), q_values.squeeze().tolist()
 
     def decide_prob(self, state):
         with torch.no_grad():
@@ -81,9 +81,9 @@ class Mind:
 
         for i, done in enumerate(batch_done):
             if done == [False]:
-                expected_q_values[i] += (self.GAMMA * max_next_q_values[i])
+                expected_q_values[i] += (self.GAMMA * max_next_q_values[i].max())
 
-        loss = F.mse_loss(current_q_values, expected_q_values.unsqueeze(1))
+        loss = F.mse_loss(current_q_values, expected_q_values.unsqueeze(1))   
         self.optimizer.zero_grad()
         loss.backward()
         for param in self.network.parameters():
@@ -151,9 +151,9 @@ class DQN(nn.Module):
         super(DQN, self).__init__()
         self.l1 = nn.Linear(nS, self.nH) # 3
         self.out = nn.Linear(self.nH, nA)
-        for m in self.modules():
+        for m in self.modules():       
             if isinstance(m, nn.Linear):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')     #if this initialises weights for q and q* then they won't be the same? Should the initialisation be random?
 
 
     def forward(self, x):
@@ -162,5 +162,5 @@ class DQN(nn.Module):
         #x = torch.cat([x], dim=1)
         out = self.out(x)
         #x= F.softmax(self.out(x), dim = 1)
-        return out
+        return F.relu(out)
 
