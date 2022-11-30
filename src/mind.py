@@ -14,6 +14,7 @@ class Mind:
     EPS_END = 0
     EPS_DECAY = 3000
     TAU = 0.05
+    ALPHA = 0.1
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def __init__(self, input_size, num_actions, lock, queue, destination = None, memory_length=1000000):
@@ -29,7 +30,7 @@ class Mind:
 
 
         self.memory = ReplayMemory(memory_length)
-        self.optimizer = optim.Adam(self.network.parameters(), 0.001)
+        self.optimizer = optim.Adam(self.network.parameters(), self.ALPHA)
         self.steps_done = 0
         self.num_actions = num_actions
 
