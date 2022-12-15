@@ -70,9 +70,9 @@ if __name__ == '__main__':
 
     [_, name, iterations] = sys.argv
 
-    np.random.seed(1)
-    random.seed(1)
-    torch.manual_seed(1)
+    #np.random.seed(1)
+    #random.seed(1)
+    #torch.manual_seed(1)
     episodes = 1
     iterations = int(iterations)
     l = Lock()
