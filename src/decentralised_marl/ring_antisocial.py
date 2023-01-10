@@ -7,9 +7,8 @@ from ring_antisocial_env import Ringantisocial
 from agent import Agent
 import glob
 
-ARG_LIST = ['learning_rate', 'optimizer', 'memory_capacity', 'batch_size', 'target_frequency', 'maximum_exploration',
-            'max_timestep', 'first_step_memory', 'replay_steps', 'number_nodes', 'target_type', 'memory',
-            'prioritization_scale', 'dueling', 'agents_number', 'graph_size']
+ARG_LIST = ['learning_rate', 'memory_capacity', 'batch_size', 'target_frequency', 'maximum_exploration',
+            'max_timestep', 'first_step_memory', 'replay_steps', 'memory', 'agents_number', 'graph_size']
 
 
 def get_name_brain(args, idx):
