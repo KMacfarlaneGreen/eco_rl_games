@@ -3,7 +3,7 @@ import os
 import random
 import argparse
 import pandas as pd
-from ring_antisocial.env import Ringantisocial
+from ring_antisocial_env import Ringantisocial
 from agent import Agent
 import glob
 
