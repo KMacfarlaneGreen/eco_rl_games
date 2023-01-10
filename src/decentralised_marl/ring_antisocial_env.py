@@ -95,7 +95,7 @@ class Ringantisocial:
     def update_positions(self, pos_list, act_list):
         positions_action_applied = []
         for idx in range(len(pos_list)):  #for each agent
-            pos_act_applied = map(operator.add, pos_list[idx], self.A_DIFF[act_list[idx]])
+            pos_act_applied = pos_list[idx] + self.A_DIFF[act_list[idx]]
             # checks to make sure the new pos in inside the grid
             if pos_act_applied < 0:    #change to be ring boundary conditions
                 pos_act_applied = self.graph_size

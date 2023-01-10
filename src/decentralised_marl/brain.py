@@ -46,7 +46,8 @@ class Brain(object):
         self.num_cpu = mp.cpu_count() // 2
  
     def opt(self, x, y):
-        
+        x = torch.from_numpy(x)
+        y = torch.from_numpy(y)
         loss = F.mse_loss(x, y)   
         self.optimizer.zero_grad()
         loss.backward()
@@ -72,6 +73,7 @@ class Brain(object):
         #return 0
 
     def predict(self, state, target=False):
+        state = torch.from_numpy(state)
         if target:  # get prediction from target network
             return self.model_(state)
         else:  # get prediction from local network
