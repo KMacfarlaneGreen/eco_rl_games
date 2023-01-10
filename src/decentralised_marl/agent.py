@@ -110,7 +110,7 @@ class Agent(object):
         if self.memory_model == 'UER':
             batch = self.memory.sample(self.batch_size)
             x, y = self.find_targets_uer(batch)
-            self.brain.train(x, y)
+            self.brain.opt(x, y)
 
         else:
             print('Invalid memory model!')

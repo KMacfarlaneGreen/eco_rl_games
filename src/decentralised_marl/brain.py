@@ -22,7 +22,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Brain(object):
 
-    def __init__(self, state_size, action_size, brain_name, lock, queue, arguments):
+    def __init__(self, state_size, action_size, brain_name, queue, arguments):
         self.state_size = state_size
         self.action_size = action_size
         self.weight_backup = brain_name
@@ -40,13 +40,12 @@ class Brain(object):
 
         self.model_.load_state_dict(self.model.state_dict())
 
-        self.lock = lock
-        self.queue = queue        
+        #self.queue = queue        
         self.losses = []
 
         self.num_cpu = mp.cpu_count() // 2
  
-    def opt(self, x, y , lock, queue):
+    def opt(self, x, y):
         
         loss = F.mse_loss(x, y)   
         self.optimizer.zero_grad()
@@ -56,21 +55,21 @@ class Brain(object):
 
         self.optimizer.step()
 
-        queue.put(loss.item())
+        #queue.put(loss.item())
 
-    def train(self, x, y):
-        processes = []
-        for _ in range(self.num_cpu):     
-            p = mp.Process(target=self.opt, args=([x,y], self.lock, self.queue))  #x is the state and y is the target
-            p.start()
-            processes.append(p)
-        for p in processes:
-            loss = self.queue.get() # will the queue still work in decentralised framework or need to change this?
-            self.losses.append(loss)
-        for p in processes:
-            p.join()
+    #def train(self, x, y):
+        #processes = []
+        #for _ in range(self.num_cpu):     
+            #p = mp.Process(target=self.opt, args=([x,y], self.queue))  #x is the state and y is the target
+            #p.start()
+            #processes.append(p)
+        #for p in processes:
+            #loss = self.queue.get() # will the queue still work in decentralised framework or need to change this?
+            #self.losses.append(loss)
+       # for p in processes:
+            #p.join()
 
-        return 0
+        #return 0
 
     def predict(self, state, target=False):
         if target:  # get prediction from target network
