@@ -22,7 +22,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Brain(object):
 
-    def __init__(self, state_size, action_size, brain_name, queue, arguments):
+    def __init__(self, state_size, action_size, brain_name, arguments):
         self.state_size = state_size
         self.action_size = action_size
         self.weight_backup = brain_name
