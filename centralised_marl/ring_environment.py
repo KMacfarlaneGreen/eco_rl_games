@@ -109,7 +109,7 @@ class Environment:
         self.iteration += 1
         self.history.append(self.map.copy())    
         cumulative_reward = self.records[self.iteration-1]["tot_reward"]
-        self.mind.train()  
+        self.mind.train()  #move this out of here 
         agent_ids = []
         agent_locs = []
         for agent in self.agents:
