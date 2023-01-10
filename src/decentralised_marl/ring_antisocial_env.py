@@ -18,7 +18,7 @@ class Ringantisocial:
         #self.game_mode = args['game_mode']     #keep and adapt these for flexible running parameters 
         #self.reward_mode = args['reward_mode']
         self.num_agents = args['agents_number']  #look back at the landmarks code when thinking about resource availability
-        self.node_num = args['node_num']
+        self.graph_size = args['graph_size']
         self.state_size = (self.num_agents) #* 2   #should this be size of whole state or fov? Why is there a *2?
         self.agents_positions = []
 
@@ -36,7 +36,7 @@ class Ringantisocial:
 
     def set_positions_idx(self):
         #updated
-        nodes = [i for i in range(0, self.node_num)]
+        nodes = [i for i in range(0, self.graph_size)]
 
         positions_idx = []
 
@@ -98,8 +98,8 @@ class Ringantisocial:
             pos_act_applied = map(operator.add, pos_list[idx], self.A_DIFF[act_list[idx]])
             # checks to make sure the new pos in inside the grid
             if pos_act_applied < 0:    #change to be ring boundary conditions
-                pos_act_applied = self.node_num
-            if pos_act_applied > self.node_num:
+                pos_act_applied = self.graph_size
+            if pos_act_applied > self.graph_size:
                 pos_act_applied = 0
             positions_action_applied.append(pos_act_applied)
 
