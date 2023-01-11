@@ -46,13 +46,18 @@ class Brain(object):
         self.num_cpu = mp.cpu_count() // 2
  
     def opt(self, x, y):
-        x = torch.from_numpy(x)
-        y = torch.from_numpy(y)
-        loss = F.mse_loss(x, y)   
+        x = torch.Tensor(x).requires_grad_()
+        print(x)
+        y = torch.Tensor(y).requires_grad_()
+        print(y)
+        loss = F.mse_loss(x, y) 
+        print(loss)  
         self.optimizer.zero_grad()
         loss.backward()
-        for param in self.model.parameters():
-            param.grad.data.clamp_(-1, 1)
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1)
+        #for param in self.model.parameters():
+          #print('param',param)
+          #param.grad.data.clamp_(-1, 1)
 
         self.optimizer.step()
 
@@ -73,11 +78,14 @@ class Brain(object):
         #return 0
 
     def predict(self, state, target=False):
-        state = torch.from_numpy(state)
+        state = torch.Tensor(state)
+        print(state.dtype)
         if target:  # get prediction from target network
-            return self.model_(state)
+            prediction_ = self.model_(state)
+            return prediction_.detach().numpy()
         else:  # get prediction from local network
-            return self.model(state)
+            prediction = self.model(state)
+            return prediction.detach().numpy()
 
     def predict_one_sample(self, state, target=False):
         return self.predict(state.reshape(1,self.state_size), target=target).flatten()

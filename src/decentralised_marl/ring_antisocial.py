@@ -98,7 +98,7 @@ class Environment(object):
                 total_step += 1
                 time_step += 1
                 state = next_state      #change states to be fovss ? 
-                reward_all += sum(reward)   #change to be local agent rewards -  why sum rewards?
+                reward_all += reward  #change to be local agent rewards -  why sum rewards?
 
 
             rewards_list.append(reward_all)
