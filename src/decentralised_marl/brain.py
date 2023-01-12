@@ -61,6 +61,8 @@ class Brain(object):
 
         self.optimizer.step()
 
+        return loss
+
         #queue.put(loss.item())
 
     #def train(self, x, y):

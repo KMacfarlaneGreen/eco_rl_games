@@ -19,6 +19,11 @@ def get_name_brain(args, idx):
 
     #saving different model weights - can I save something else like individual actions or rewards?
 
+def get_loss_name(args, idx):
+
+    file_name_str = '_'.join([str(args[x]) for x in ARG_LIST])
+    return './results_ring_antisocial/losses/' + file_name_str + '_' + str(idx) + '.csv'
+    
 def get_name_rewards(args):
 
     file_name_str = '_'.join([str(args[x]) for x in ARG_LIST])
@@ -31,6 +36,25 @@ def get_name_timesteps(args):
     file_name_str = '_'.join([str(args[x]) for x in ARG_LIST])
 
     return './results_ring_antisocial/timesteps_files/' + file_name_str + '.csv'
+
+def get_name_actions(args):
+
+    file_name_str = '_'.join([str(args[x]) for x in ARG_LIST])
+    #os.makedirs('./results_ring_antisocial/timesteps_files/'+ file_name_str + '.csv')
+    return './results_ring_antisocial/actions/' + file_name_str + '.csv'
+
+def get_name_states(args):
+
+    file_name_str = '_'.join([str(args[x]) for x in ARG_LIST])
+    #os.makedirs('./results_ring_antisocial/timesteps_files/'+ file_name_str + '.csv')
+    return './results_ring_antisocial/states/' + file_name_str + '.csv'
+
+def get_name_rews(args):
+
+    file_name_str = '_'.join([str(args[x]) for x in ARG_LIST])
+    #os.makedirs('./results_ring_antisocial/timesteps_files/'+ file_name_str + '.csv')
+    return './results_ring_antisocial/rewards_timesteps/' + file_name_str + '.csv'
+
 
 
 class Environment(object):
@@ -48,7 +72,7 @@ class Environment(object):
         self.num_agents = arguments['agents_number']
         self.graph_size = arguments['graph_size']
 
-    def run(self, agents, file1, file2):
+    def run(self, agents, file1, file2, file3, file4, file5):
 
         total_step = 0
         rewards_list = []
@@ -83,17 +107,31 @@ class Environment(object):
                 next_state = np.array(next_state)
                 next_state = next_state.ravel()
 
+                with open(file3, "a") as f:
+                  f.write("%s, %s\n" % (time_step, actions)) 
+              
+                with open(file4, "a") as f:
+                  f.write("%s, %s\n" % (time_step, state)) 
                 
+                with open(file5, "a") as f:
+                  f.write("%s, %s\n" % (time_step, reward))
 
                 if not self.test:
                     for agent in agents:
+                        loss_list = []
                         #add step here to get the agents individual fov and next_fov from the state 
                         agent.observe((state, actions, reward, next_state, done))  #pushing to replay memory - needs to be the correct state, action, reward, next state for that individual agent
                         if total_step >= self.filling_steps:
                             agent.decay_epsilon()
                             if time_step % self.steps_b_updates == 0:
-                                agent.replay()     #this is the training step
+                                loss = agent.replay()     #this is the training step
                             agent.update_target_model()
+                            loss_list.append(loss)
+                        idx = agent.get_index()
+                        loss_file = get_loss_name(args,idx)
+                        print(loss_list)
+                        df_loss = pd.DataFrame(loss_list, columns=None, index=[f'{time_step}'])
+                        df_loss.to_csv(loss_file, mode = 'a')
 
                 total_step += 1
                 time_step += 1
@@ -187,5 +225,8 @@ if __name__ =="__main__":
 
     rewards_file = get_name_rewards(args)
     timesteps_file = get_name_timesteps(args)
+    action_file = get_name_actions(args)
+    states_file = get_name_states(args)
+    rews_file = get_name_rews(args)
 
-    env.run(all_agents, rewards_file, timesteps_file)
+    env.run(all_agents, rewards_file, timesteps_file, action_file, states_file, rews_file)

@@ -110,7 +110,8 @@ class Agent(object):
         if self.memory_model == 'UER':
             batch = self.memory.sample(self.batch_size)
             x, y = self.find_targets_uer(batch)
-            self.brain.opt(x, y)
+            loss = self.brain.opt(x, y)
+            return loss.detach().numpy()
 
         else:
             print('Invalid memory model!')
@@ -118,3 +119,6 @@ class Agent(object):
     def update_target_model(self):
         if self.step % self.update_target_frequency == 0:
             self.brain.update_target_model()
+
+    def get_index(self):
+        return self.bee_index
