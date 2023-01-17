@@ -45,7 +45,6 @@ class Mind:
         return self.num_actions
 
     def get_losses(self):
-        self.losses = self.losses.detach().numpy()
         return self.losses
 
     def decide(self, state):
@@ -120,7 +119,7 @@ class Mind:
 
         data = self.get_data()
         loss = self.opt(data)
-        self.losses.append(loss)
+        self.losses.append(loss.detach().numpy())
         #processes = []
         #for _ in range(self.num_cpu):     
             #data = self.get_data()
