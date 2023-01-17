@@ -45,6 +45,7 @@ class Mind:
         return self.num_actions
 
     def get_losses(self):
+        self.losses = self.losses.detach().numpy()
         return self.losses
 
     def decide(self, state):
