@@ -17,11 +17,11 @@ class Mind:
     ALPHA = 0.1
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    def __init__(self, input_size, num_actions, lock, queue, destination = None, memory_length=1000000):
+    def __init__(self, input_size, num_actions, destination = None, memory_length=1000000):
         self.network = DQN(input_size, num_actions)
         self.target_network = DQN(input_size, num_actions)
-        self.lock = lock
-        self.queue = queue        
+        #self.lock = lock
+        #self.queue = queue        
         self.losses = []
         self.network.share_memory()      
         self.target_network.share_memory()
