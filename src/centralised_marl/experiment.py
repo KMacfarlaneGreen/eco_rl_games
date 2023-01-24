@@ -29,18 +29,14 @@ def play(map, episodes, iterations, eps=1e-6):
             keys = ["tot_reward"]
             rews = {key: 0 for key in keys}       #change from dict to list?
             counts = {key: 0 for key in keys}
-            agent_states = []
             for agent in agents:
                 agent_id = agent.get_id()
                 agent_state = agent.get_state()
-                agent_states.append(agent_state)
-            for i,agent in enumerate(agents):
-                action, q_vals = agent.decide(torch.Tensor(agent_state[i]))
+                action, q_vals = agent.decide(agent_state[i])
                 q_vals.append(action)
                 map.q_values[int(t)][int(agent_id)] = q_vals
-                map.step(agent, action)
-            for agent in agents:            #changed to case where agents all move and are then rewarded
-                rew = map.reward(agent)     #to do: make more efficient, make option for both cases
+                map.step(agent, action)            
+                rew = map.reward(agent)     
                 rews["tot_reward"] += rew     
                 counts["tot_reward"] += 1
             
