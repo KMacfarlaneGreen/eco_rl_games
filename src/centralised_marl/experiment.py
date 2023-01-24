@@ -35,7 +35,9 @@ def play(map, episodes, iterations, eps=1e-6):
                 action, q_vals = agent.decide(agent_state)
                 q_vals.append(action)
                 map.q_values[int(t)][int(agent_id)] = q_vals
-                rew = map.step(agent, action)
+                map.step(agent, action)
+            for agent in agents:            #changed to case where agents all move and are then rewarded
+                rew = map.reward(agent)     #to do: make more efficient, make option for both cases
                 rews["tot_reward"] += rew     
                 counts["tot_reward"] += 1
             

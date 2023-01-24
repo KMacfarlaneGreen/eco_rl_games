@@ -18,8 +18,8 @@ from torch.multiprocessing import Queue, Lock
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-from agent import Agent
-from mind import Mind
+from agent import Agent   #ideallyy also separate agent from environment
+from mind import Mind    #separate mind from environment
 
 class Environment:
     def __init__(self, size, num_actions = 2, name = None, 
@@ -35,7 +35,7 @@ class Environment:
             self.lock = lock
         else:
             self.lock = Lock()
-        self.mind = Mind(self.input_size, num_actions, self.lock, Queue())
+        self.mind = Mind(self.input_size, num_actions)
         #weights = self.mind.network.state_dict()  #needed? 
 
         self.max_iteration = max_iteration
@@ -50,7 +50,7 @@ class Environment:
         if not os.path.isdir(str(self.name)):
             os.mkdir(str(self.name))
             os.mkdir(str(self.name)+'/episodes')
-            self.map, self.agents, self.id_to_agent = self._generate_map()  
+            self.map, self.agents, self.id_to_agent = self._generate_map()  #remove agent generation from map generation
             self._set_initial_states()
             self.crystal = np.zeros((max_iteration, self.node_num, 1)) 
                                                                   #save the number of agents at each node at each iteration (map)
@@ -67,7 +67,7 @@ class Environment:
     def get_mindsize(self):
         return self.input_size, self.num_actions
 
-    def move(self, agent):
+    def move(self, agent):         #change to be independent of agent object?
     #moves an agent to new node location following a decision to move left or right
         i = loc = agent.get_loc()   
         i_n = to = agent.get_decision()  #decision returns the new location after performing action 0 for move left and 1 for move right
@@ -84,7 +84,10 @@ class Environment:
         i_n = self._add(i, di)    #gives new location
         agent.set_decision(i_n)
         self.move(agent)
-        
+
+    def reward(self, agent):
+        #function to reward agents individually and push to memory buffer
+        i_n = agent.get_loc()
         if self.map[int(i_n)] == 1.0:   #if agent has moved to a node where it is the only one present it receives a positive reward
             rew = 1                     
             assert rew != None                             
@@ -109,7 +112,7 @@ class Environment:
         self.iteration += 1
         self.history.append(self.map.copy())    
         cumulative_reward = self.records[self.iteration-1]["tot_reward"]
-        self.mind.train()  #move this out of here 
+        self.mind.train()  #separate the training step from the environment - move this update function from environment to experiment
         agent_ids = []
         agent_locs = []
         for agent in self.agents:
@@ -146,9 +149,9 @@ class Environment:
 
 
     def save_agents(self):
-        self.lock.acquire()   
+        #self.lock.acquire()   
         pickle.dump(self.agents, open("agents/agent_%s.p" % (self.name), "wb" ))
-        self.lock.release()
+        #self.lock.release()
 
     def get_agent_state(self, agent):
         #this returns the state of the square observation or 'field of view' for each agent
