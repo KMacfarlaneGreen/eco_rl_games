@@ -32,7 +32,7 @@ def play(map, episodes, iterations, eps=1e-6):
             for agent in agents:
                 agent_id = agent.get_id()
                 agent_state = agent.get_state()
-                action, q_vals = agent.decide(agent_state[i])
+                action, q_vals = agent.decide(agent_state)
                 q_vals.append(action)
                 map.q_values[int(t)][int(agent_id)] = q_vals
                 map.step(agent, action)            
