@@ -26,6 +26,7 @@ class Agent(object):
         #where should these be?
         self.update_target_frequency = arguments['target_frequency']
         self.max_exploration_step = arguments['maximum_exploration']
+        self.batch_size = arguments['batch_size']
         self.step = 0
 
         self.test = arguments['test']
