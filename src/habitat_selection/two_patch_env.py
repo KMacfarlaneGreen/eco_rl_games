@@ -49,7 +49,7 @@ class Two_patch_selection:
         # map generated position indices to positions
         self.agents_positions = [self.nodes[pos] for pos in agents_positions_idx] #is this different?
 
-        initial_state = list(self.agents_positions, self.QUALITY)  #put quality of patches in initial state
+        initial_state = list(self.agents_positions + self.QUALITY)  #put quality of patches in initial state
 
         return initial_state  #this is a list of the initial positions of the agents plus the quality of the patches
 
