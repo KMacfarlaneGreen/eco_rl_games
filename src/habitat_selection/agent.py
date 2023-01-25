@@ -14,7 +14,7 @@ class Agent(object):
         self.action_size = action_size
         self.bee_index = bee_index
         self.brain = brain #Brain(self.state_size, self.action_size, brain_name, arguments)    
-
+        self.gamma = 0.95
         self.memory_model = arguments['memory']
 
         if self.memory_model == 'UER':     #move memory to brain
