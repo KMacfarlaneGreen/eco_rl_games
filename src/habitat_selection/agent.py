@@ -50,27 +50,27 @@ class Agent(object):
         p_ = self.brain.predict(states_)
         pTarget_ = self.brain.predict(states_, target=True)
 
-        x = np.zeros((batch_len, self.state_size))
-        y = np.zeros((batch_len, self.action_size))
+        x = np.zeros((batch_len))
+        y = np.zeros((batch_len))
         errors = np.zeros(batch_len)
 
         for i in range(batch_len):
-            o = batch[i]
-            s = o[0]
-            a = o[1][self.bee_index]  
-            r = o[2][self.bee_index]  #bee_index corresponds to agent
-            s_ = o[3]
-            done = o[4]
+            o = batch[i] 
+            s = o[0]       #state
+            a = o[1][self.bee_index]      #action corresponding to an agent index
+            r = o[2][self.bee_index]       #reward corresponding to same agent index
+            s_ = o[3]                     #next state
+            done = o[4]                   #done
 
-            t = p[i]
-            old_value = t[a]
+            t = p[i]                      #q values for state s
+            old_value = t[a]              #q value for action taken from state s
             if done:
-                t[a] = r
+                t[a] = r                   #if done, q value is just reward
             else:
-                t[a] = r + self.gamma * np.amax(pTarget_[i])
+                t[a] = r + self.gamma * np.amax(pTarget_[i]) #if not done, q value is reward + discounted max q value of next state
 
-            x[i] = s
-            y[i] = t
+            x[i] = old_value
+            y[i] = t[a]
             errors[i] = np.abs(t[a] - old_value)
 
         return [x, y]
