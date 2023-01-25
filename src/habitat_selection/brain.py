@@ -8,7 +8,6 @@ import numpy as np
 from zmq import device
 
 from uniform_experience_replay import Memory as UER
-from agent import Agent
 
 # check arguments actually called in the functions 
 

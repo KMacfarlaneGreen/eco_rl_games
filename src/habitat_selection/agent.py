@@ -1,6 +1,4 @@
-import numpy as np
-
-from brain import Brain  
+import numpy as np 
 from uniform_experience_replay import Memory as UER 
 
 MAX_EPSILON = 1.0    #decay rate
