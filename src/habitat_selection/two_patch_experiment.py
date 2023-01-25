@@ -187,18 +187,24 @@ if __name__ =="__main__":
     action_file = get_name_actions(args)
     states_file = get_name_states(args)
     rews_file = get_name_rews(args)
-
-    if not os.path.isdir(str(rewards_file)):
-        os.makedirs(str(rewards_file))
-    if not os.path.isdir(str(brain_file)):
-        os.makedirs(str(brain_file))
-    if not os.path.isdir(str(timesteps_file)):
-        os.makedirs(str(timesteps_file))
-    if not os.path.isdir(str(action_file)):
-        os.makedirs(str(action_file))
-    if not os.path.isdir(str(states_file)):
-        os.makedirs(str(states_file))
-    if not os.path.isdir(str(rews_file)):
-        os.makedirs(str(rews_file))
+    
+    rewards_path = './habitat_selection/rewards_files/'
+    if not os.path.isdir(rewards_path):
+        os.makedirs(rewards_path)
+    brain_path = './habitat_selection/weights_files/'
+    if not os.path.isdir(brain_path):
+        os.makedirs(brain_path)
+    timesteps_path = './habitat_selection/timesteps_files/'
+    if not os.path.isdir(timesteps_path):
+        os.makedirs(timesteps_path)
+    actions_path = './habitat_selection/actions_files/'
+    if not os.path.isdir(actions_path):
+        os.makedirs(actions_path)
+    states_path = './habitat_selection/states_files/'
+    if not os.path.isdir(states_path):
+        os.makedirs(states_path)
+    rews_path = './habitat_selection/rews_files/'
+    if not os.path.isdir(rews_path):
+        os.makedirs(rews_path)
     
     env.run(all_agents, brain, rewards_file, timesteps_file, action_file, states_file, rews_file)
