@@ -39,9 +39,7 @@ class Brain(object):
  
     def opt(self, x, y):
         x = torch.Tensor(x).requires_grad_()
-        print(x)
         y = torch.Tensor(y).requires_grad_()
-        print(y)
         loss = F.mse_loss(x, y)  
         self.optimizer.zero_grad()
         loss.backward()
@@ -78,6 +76,10 @@ class DQN(nn.Module):
         self.nH = 16
         super(DQN, self).__init__()
         self.l1 = nn.Linear(nS, self.nH) # 3
+        self.l2 = nn.Linear(nS, self.nH) 
+        self.l3 = nn.Linear(nS, self.nH) 
+        self.l4 = nn.Linear(nS, self.nH) 
+        self.l5 = nn.Linear(nS, self.nH) 
         self.out = nn.Linear(self.nH, nA)
         for m in self.modules():       
             if isinstance(m, nn.Linear):
@@ -85,6 +87,6 @@ class DQN(nn.Module):
 
 
     def forward(self, x):
-        x = F.relu((self.l1(x)))
+        x = F.relu(self.l5(F.relu(self.l4(F.relu(self.l3(F.relu(self.l2(F.relu(self.l1(x))))))))))#F.relu((self.l1(x)))
         out = self.out(x)
         return F.relu(out)
