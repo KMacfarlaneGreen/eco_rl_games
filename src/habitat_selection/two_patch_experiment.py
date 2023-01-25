@@ -15,10 +15,10 @@ def get_name_brain(args):
 
     return './habitat_selection/weights_files/' + file_name_str + '_'  + '.h5'
 
-def get_loss_name(args, idx):
+def get_loss_name(args):
 
     file_name_str = '_'.join([str(args[x]) for x in ARG_LIST])
-    return './habitat_selection/losses/' + file_name_str + '_' + str(idx) + '.csv'
+    return './habitat_selection/losses/' + file_name_str + '_' + '.csv'
     
 def get_name_rewards(args):
 
@@ -103,9 +103,10 @@ class Environment(object):
                 with open(file5, "a") as f:
                   f.write("%s, %s\n" % (time_step, rewards))
 
+                loss_list = []
+
                 if not self.test:
                     for agent in agents:
-                        loss_list = []
                         agent.observe((state, actions, rewards, next_state, done))  #pushing to replay memory 
                         if total_step >= self.filling_steps:
                             agent.decay_epsilon()
@@ -114,9 +115,11 @@ class Environment(object):
                             agent.update_target_model()
                             loss_list.append(loss)  #change to save loss to single file
                         idx = agent.get_index()
-                        loss_file = get_loss_name(args,idx)
-                        df_loss = pd.DataFrame(loss_list, columns=None, index=[f'{time_step}'])
-                        df_loss.to_csv(loss_file, mode = 'a')
+                    
+                    loss_file = get_loss_name(args)
+                    with open(loss_file, "a") as f:
+                        f.write("%s\n" % (loss_list))
+                        
 
                 total_step += 1
                 time_step += 1
