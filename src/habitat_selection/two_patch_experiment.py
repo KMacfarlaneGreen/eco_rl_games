@@ -180,7 +180,7 @@ if __name__ =="__main__":
     brain = Brain(state_size, action_space, brain_file, args)
     all_agents = []
     for b_idx in range(args['agents_number']):
-        all_agents.append(Agent(state_size, action_space, b_idx, brain_file, args))
+        all_agents.append(Agent(state_size, action_space, b_idx, brain, args))
     
     rewards_file = get_name_rewards(args)
     timesteps_file = get_name_timesteps(args)
