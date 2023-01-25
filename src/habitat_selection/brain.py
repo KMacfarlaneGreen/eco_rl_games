@@ -76,10 +76,10 @@ class DQN(nn.Module):
         self.nH = 16
         super(DQN, self).__init__()
         self.l1 = nn.Linear(nS, self.nH) # 3
-        self.l2 = nn.Linear(nS, self.nH) 
-        self.l3 = nn.Linear(nS, self.nH) 
-        self.l4 = nn.Linear(nS, self.nH) 
-        self.l5 = nn.Linear(nS, self.nH) 
+        self.l2 = nn.Linear(self.nH, self.nH) 
+        self.l3 = nn.Linear(self.nH, self.nH) 
+        self.l4 = nn.Linear(self.nH, self.nH) 
+        self.l5 = nn.Linear(self.nH, self.nH) 
         self.out = nn.Linear(self.nH, nA)
         for m in self.modules():       
             if isinstance(m, nn.Linear):
