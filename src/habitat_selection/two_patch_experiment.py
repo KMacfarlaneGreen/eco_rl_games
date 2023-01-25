@@ -189,16 +189,16 @@ if __name__ =="__main__":
     rews_file = get_name_rews(args)
 
     if not os.path.isdir(str(rewards_file)):
-        os.mkdir(str(rewards_file))
+        os.makedirs(str(rewards_file))
     if not os.path.isdir(str(brain_file)):
-        os.mkdir(str(brain_file))
+        os.makedirs(str(brain_file))
     if not os.path.isdir(str(timesteps_file)):
-        os.mkdir(str(timesteps_file))
+        os.makedirs(str(timesteps_file))
     if not os.path.isdir(str(action_file)):
-        os.mkdir(str(action_file))
+        os.makedirs(str(action_file))
     if not os.path.isdir(str(states_file)):
-        os.mkdir(str(states_file))
+        os.makedirs(str(states_file))
     if not os.path.isdir(str(rews_file)):
-        os.mkdir(str(rews_file))
+        os.makedirs(str(rews_file))
     
     env.run(all_agents, brain, rewards_file, timesteps_file, action_file, states_file, rews_file)
