@@ -74,7 +74,7 @@ class Two_patch_selection:
             self.terminal = False
 
 
-        new_state = list(self.agents_positions)
+        new_state = list(self.agents_positions+self.QUALITY)
 
         return [new_state, reward, self.terminal]
 
