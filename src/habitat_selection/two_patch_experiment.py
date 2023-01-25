@@ -200,17 +200,20 @@ if __name__ =="__main__":
     if not os.path.isdir(timesteps_path):
         os.makedirs(timesteps_path)
         os.mkdir(timesteps_file)
-    actions_path = './habitat_selection/actions_files/'
+    actions_path = './habitat_selection/actions/'
     if not os.path.isdir(actions_path):
         os.makedirs(actions_path)
         os.mkdir(action_file)
-    states_path = './habitat_selection/states_files/'
+    states_path = './habitat_selection/states/'
     if not os.path.isdir(states_path):
         os.makedirs(states_path)
         os.mkdir(states_file)
-    rews_path = './habitat_selection/rews_files/'
+    rews_path = './habitat_selection/rewards_timesteps/'
     if not os.path.isdir(rews_path):
         os.makedirs(rews_path)
         os.mkdir(rews_file)
+    loss_path = './habitat_selection/losses/'
+    if not os.path.isdir(loss_path):
+        os.makedirs(loss_path)
     
     env.run(all_agents, brain, rewards_file, timesteps_file, action_file, states_file, rews_file)
