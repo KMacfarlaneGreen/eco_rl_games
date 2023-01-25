@@ -34,7 +34,7 @@ class Agent(object):
 
     def greedy_actor(self, state):   #get agent action
         if np.random.rand() <= self.epsilon:
-            return np.random.randrange(self.action_size)
+            return np.random.choice(self.action_size)
         else:
             return np.argmax(self.brain.predict_one_sample(state))
 
