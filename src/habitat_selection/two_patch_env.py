@@ -68,7 +68,7 @@ class Two_patch_selection:
         neighbour_rewards = []
         for idx in range(len(self.agents_positions)):
             n_term = [agent_rewards[n] for n in range(len(self.agents_positions)) if n != idx]
-            n_reward = agent_reward[idx] + self.alpha*sum(n_term)
+            n_reward = agent_rewards[idx] + self.alpha*sum(n_term)
             neighbour_rewards.append(n_reward)
 
         #include neighbouring rewards
