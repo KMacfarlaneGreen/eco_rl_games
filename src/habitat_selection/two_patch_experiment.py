@@ -113,12 +113,12 @@ class Environment(object):
                             if time_step % self.steps_b_updates == 0:
                                 loss = agent.replay()     #this is the training step
                             agent.update_target_model()
-                            loss_list.append(int(loss))  
+                            loss_list.append(float(loss))  
                         idx = agent.get_index()
                     
                     loss_file = get_loss_name(args)
                     with open(loss_file, "a") as f:
-                        f.write("%s\n" % (loss_list))
+                        f.write("%s\n" % loss_list)
                         
 
                 total_step += 1

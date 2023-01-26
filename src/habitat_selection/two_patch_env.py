@@ -19,6 +19,7 @@ class Two_patch_selection:
         self.nodes = []
         self.positions_idx = []  
         self.num_episodes = 0
+        self.alpha = 0.1
         self.terminal = False
 
     def set_positions_idx(self):
@@ -64,8 +65,16 @@ class Two_patch_selection:
             ag_reward = self.QUALITY[agent_pos] - self.agents_positions.count(agent_pos)
             agent_rewards.append(ag_reward)
 
+        neighbour_rewards = []
+        for idx in range(len(self.agents_positions)):
+            n_term = [agent_rewards[n] for n in range(len(self.agents_positions)) if n != idx]
+            n_reward = agent_reward[idx] + self.alpha*sum(n_term)
+            neighbour_rewards.append(n_reward)
+
+        #include neighbouring rewards
+
         #reward = sum(agent_rewards)
-        reward = agent_rewards
+        reward = neighbour_rewards
         # check the terminal case - what is my terminal case?
 
         if sum(reward) == 0:
@@ -74,7 +83,7 @@ class Two_patch_selection:
             self.terminal = False
 
 
-        new_state = list(self.agents_positions+self.QUALITY)
+        new_state = list(self.agents_positions + self.QUALITY)
 
         return [new_state, reward, self.terminal]
 
