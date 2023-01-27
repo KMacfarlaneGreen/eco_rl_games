@@ -85,8 +85,8 @@ class Agent(object):
     def find_targets_per(self, batch):
         batch_len = len(batch)
 
-        states = np.array([o[0] for o in batch])
-        states_ = np.array([o[3] for o in batch])
+        states = np.array([o[1][0] for o in batch])
+        states_ = np.array([o[1][3] for o in batch])
 
         p = self.brain.predict(states)
         p_ = self.brain.predict(states_)
