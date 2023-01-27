@@ -26,7 +26,7 @@ class Memory(object):
         sample_batch_priorities = []
         num_segments = self.memory.total() / n
 
-        for i in xrange(n):
+        for i in range(n):
             left = num_segments * i
             right = num_segments * (i + 1)
 
@@ -39,6 +39,6 @@ class Memory(object):
         return [sample_batch, sample_batch_indices, sample_batch_priorities]
 
     def update(self, batch_indices, errors):
-        for i in xrange(len(batch_indices)):
+        for i in range(len(batch_indices)):
             p = self.get_priority(errors[i])
             self.memory.update(batch_indices[i], p)
