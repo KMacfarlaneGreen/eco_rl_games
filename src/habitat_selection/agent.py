@@ -98,11 +98,12 @@ class Agent(object):
 
         for i in range(batch_len):
             o = batch[i] 
-            s = o[0]       #state
-            a = o[1][self.bee_index]      #action corresponding to an agent index
-            r = o[2][self.bee_index]       #reward corresponding to same agent index
-            s_ = o[3]                     #next state
-            done = o[4]                   #done
+            s = o[1][0]       #state
+            a = o[1][1][self.bee_index]      #action corresponding to an agent index
+            r = o[1][2][self.bee_index]       #reward corresponding to same agent index
+            s_ = o[1][3]                     #next state
+            done = o[1][4]                   #done
+                 #done
 
             t = p[i]                      #q values for state s
             old_value = t[a]              #q value for action taken from state s
@@ -160,7 +161,7 @@ class Agent(object):
                                                       for i in importance_sampling_weights]
             sample_weights = [errors[i] * normalized_importance_sampling_weights[i] for i in range(len(errors))]
 
-            self.brain.train(x, y, np.array(sample_weights))
+            self.brain.opt(x, y, np.array(sample_weights))
 
             self.memory.update(batch_indices, errors)
 
