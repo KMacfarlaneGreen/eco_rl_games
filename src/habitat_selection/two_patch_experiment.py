@@ -7,7 +7,7 @@ from agent import Agent
 from brain import Brain
 
 ARG_LIST = ['learning_rate', 'memory_capacity', 'batch_size', 'target_frequency', 'maximum_exploration',
-            'max_timestep', 'first_step_memory', 'replay_steps', 'memory', 'agents_number', 'graph_size']
+            'max_timestep', 'first_step_memory', 'replay_steps', 'memory', 'prioritization_scale', 'agents_number', 'graph_size']
 
 def get_name_brain(args):
 
@@ -161,7 +161,8 @@ if __name__ =="__main__":
     parser.add_argument('-fsm', '--first-step-memory', default=0, type=float,
                         help='Number of initial steps for just filling the memory')
     parser.add_argument('-rs', '--replay-steps', default=4, type=float, help='Steps between updating the network')
-    parser.add_argument('-mt', '--memory', choices=['UER'], default='UER')
+    parser.add_argument('-mt', '--memory', choices=['UER', 'PER'], default='PER')
+    parser.add_argument('-pl', '--prioritization-scale', default=0.5, type=float, help='Scale for prioritization')
     parser.add_argument('-gn', '--gpu-num', default='2', type=str, help='Number of GPU to use')
     parser.add_argument('-test', '--test', action='store_true', help='Enable the test phase if "store_false"')
 

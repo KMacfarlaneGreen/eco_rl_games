@@ -37,10 +37,10 @@ class Brain(object):
 
         self.num_cpu = mp.cpu_count() // 2
  
-    def opt(self, x, y):
+    def opt(self, x, y, errors):   #errors for PER only - change to option
         x = torch.Tensor(x).requires_grad_()
         y = torch.Tensor(y).requires_grad_()
-        loss = F.mse_loss(x, y)  
+        loss = (torch.FloatTensor(errors) * F.mse_loss(x, y)).mean() 
         self.optimizer.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1)
