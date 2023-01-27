@@ -50,7 +50,6 @@ class Brain(object):
 
     def predict(self, state, target=False):
         state = torch.Tensor(state)
-        print(state.dtype)
         if target:  # get prediction from target network
             prediction_ = self.model_(state)
             return prediction_.detach().numpy()

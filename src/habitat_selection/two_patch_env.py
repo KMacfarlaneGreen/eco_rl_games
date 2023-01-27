@@ -4,11 +4,12 @@ import os
 
 
 class Two_patch_selection: 
-    LEFT = 0
-    RIGHT = 1
-    STAY = 2
-    A = [LEFT,RIGHT, STAY]
-    A_DIFF = [-1, 1, 0]
+    #LEFT = 0
+    #RIGHT = 1
+    MOVE = 0
+    STAY = 1 #2
+    A =  [MOVE, STAY]#[LEFT,RIGHT, STAY] #for two patch move or stay
+    A_DIFF = [1, 0]#[-1, 1, 0]
     QUALITY = [5, 2]
 
     def __init__(self, args, current_path):
@@ -90,12 +91,20 @@ class Two_patch_selection:
     def update_positions(self, pos_list, act_list):
         positions_action_applied = []
         for idx in range(len(pos_list)):  #for each agent
-            pos_act_applied = pos_list[idx] + self.A_DIFF[act_list[idx]]
+            if act_list[idx] == self.STAY:
+                pos_act_applied = pos_list[idx]
+            if act_list[idx] == self.MOVE:
+                if pos_list[idx] == 0:
+                    pos_act_applied = 1
+                elif pos_list[idx] == 1:
+                    pos_act_applied = 0
+            #code for multiple patch:
+            #pos_act_applied = pos_list[idx] + self.A_DIFF[act_list[idx]]
             # checks to make sure the new pos in inside the grid
-            if pos_act_applied < 0:    #change to be ring boundary conditions
-                pos_act_applied = self.graph_size
-            if pos_act_applied > self.graph_size:
-                pos_act_applied = 0
+            #if pos_act_applied < 0:    #change to be ring boundary conditions
+                #pos_act_applied = self.graph_size
+            #if pos_act_applied > self.graph_size:
+                #pos_act_applied = 0
             positions_action_applied.append(pos_act_applied)
 
         final_positions = positions_action_applied
