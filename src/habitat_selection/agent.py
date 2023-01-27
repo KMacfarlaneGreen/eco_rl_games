@@ -1,5 +1,6 @@
 import numpy as np 
 from uniform_experience_replay import Memory as UER 
+from prioritised_experience_replay import Memory as PER
 
 MAX_EPSILON = 1.0    #decay rate
 MIN_EPSILON = 0.01
