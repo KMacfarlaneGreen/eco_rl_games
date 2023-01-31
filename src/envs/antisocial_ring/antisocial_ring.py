@@ -28,7 +28,7 @@ def env(render_mode = None):
     return env
 
 class raw_env(AECEnv):
-    metadata = {'render.modes': ['human'], 'name': "ring_antisocial_env", 'observability': ['full', 'partial']}
+    metadata = {'render.modes': ['human'], 'name': "antisocial_ring_v0", 'observability': ['full', 'partial']}
 
     def __init__(self, render_mode = None, observability = None):
         """
