@@ -1,7 +1,7 @@
 import functools
 import gymnasium as gym
 import numpy as np
-from gym.spaces import Discrete, Box
+from gymnasium.spaces import Discrete, Box
 
 from pettingzoo import AECEnv
 from pettingzoo.utils import agent_selector, wrappers
@@ -30,7 +30,7 @@ def env(render_mode = None):
 class raw_env(AECEnv):
     metadata = {'render.modes': ['human'], 'name': "antisocial_ring_v0", 'observability': ['full', 'partial']}
 
-    def __init__(self, render_mode = None, observability = None):
+    def __init__(self, render_mode = None, observability = 'full'):
         """
          The init method takes in environment arguments and
          should define the following attributes:
@@ -52,7 +52,7 @@ class raw_env(AECEnv):
         self.observability = observability
         self.possible_agents = [str(i) for i in range(self.agent_pop)]
         #self.agent_order = [str(i) for i in range(self.num_agents)]
-        self.agent_name_mapping = dict(zip(self.possible_agents, list(range(len(self.agent_pop)))))
+        self.agent_name_mapping = dict(zip(self.possible_agents, list(range(self.agent_pop))))
         #self.agent_selection = agent_selector(self.agent_order)
         self._action_spaces = {agent: Discrete(3) for agent in self.possible_agents}
         if self.observability == 'full':
@@ -87,7 +87,7 @@ class raw_env(AECEnv):
             )
             return
 
-        for i in range(self.agent_pop)):
+        for i in range(self.agent_pop):
             print("Agent {} is at position {} and recieved reward {}".format(i, self.agents_positions[i], self.rewards[self.agents[i]]))  #check this later 
 
     def observe(self, agent):
