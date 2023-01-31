@@ -161,9 +161,10 @@ class Agent(object):
                                                       for i in importance_sampling_weights]
             sample_weights = [errors[i] * normalized_importance_sampling_weights[i] for i in range(len(errors))]
 
-            self.brain.opt(x, y, np.array(sample_weights))
+            loss = self.brain.opt(x, y, np.array(sample_weights))
 
             self.memory.update(batch_indices, errors)
+            return loss.detach().numpy()
 
         else:
             print('Invalid memory model!')

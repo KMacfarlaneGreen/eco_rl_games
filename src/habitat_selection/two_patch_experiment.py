@@ -134,16 +134,19 @@ class Environment(object):
                                                                                t=time_step, g=done))
 
             if not self.test:
-                if episode_num % 100 == 0:
-                    df = pd.DataFrame(rewards_list, columns=['score'])
-                    df.to_csv(file1)
+                if not self.test:
+                #if episode_num % 100 == 0:
+                    with open(file1, 'a') as f:
+                        f.write("%s, %s\n" % (episode_num, reward_all))
+                    #df = pd.DataFrame(rewards_list, columns=['score'])
+                    #df.to_csv(file1)
 
-                    df = pd.DataFrame(timesteps_list, columns=['steps'])
-                    df.to_csv(file2)
+                    #df = pd.DataFrame(timesteps_list, columns=['steps'])
+                    #df.to_csv(file2)
 
                     if total_step >= self.filling_steps:
                         if reward_all > max_score:
-                            #for agent in agents:
+                        #for agent in agents:
                             brain.save_model()
                             max_score = reward_all
 
