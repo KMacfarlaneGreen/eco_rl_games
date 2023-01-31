@@ -40,25 +40,25 @@ class raw_env(AECEnv):
         These attributes should not be changed after initialization.
         """
         super().__init__()
-        self.num_agents = 5
+        self.agent_pop = 5
         self.graph_size = 20
         self.state_size = self.graph_size   #how to represent state?
-        self.agents_positions = []
+        #self.agents_positions = []
         self.nodes = [i for i in range(self.graph_size)]
         #self.positions_idx = []
         #self.num_episodes = 0
         #self.terminal = False
         self.render_mode = render_mode
         self.observability = observability
-        self.possible_agents = [str(i) for i in range(self.num_agents)]
+        self.possible_agents = [str(i) for i in range(self.agent_pop)]
         #self.agent_order = [str(i) for i in range(self.num_agents)]
-        self.agent_name_mapping = dict(zip(self.possible_agents, list(range(len(self.num_agents)))))
+        self.agent_name_mapping = dict(zip(self.possible_agents, list(range(len(self.agent_pop)))))
         #self.agent_selection = agent_selector(self.agent_order)
-        self.action_spaces = {agent: Discrete(3) for agent in self.possible_agents}
+        self._action_spaces = {agent: Discrete(3) for agent in self.possible_agents}
         if self.observability == 'full':
-            self.observation_spaces = {agent: Discrete(self.graph_size) for agent in self.possible_agents}
+            self._observation_spaces = {agent: Box(low=np.zeros((self.graph_size)), high = self.agent_pop*np.ones((self.graph_size)),dtype=np.float32) for agent in self.possible_agents}
         elif self.observability == 'partial':
-            self.observation_spaces = {agent: Discrete(3) for agent in self.possible_agents}
+            self._observation_spaces = {agent: Box(low=np.zeros((3)), high = self.agent_pop*np.ones((3)),dtype=np.float32) for agent in self.possible_agents}
         #self.rewards = {agent: 0 for agent in self.agents}
         #self.dones = {agent: False for agent in self.agents}
         #self.infos = {agent: {} for agent in self.agents}
@@ -69,9 +69,9 @@ class raw_env(AECEnv):
     @functools.lru_cache(maxsize=None)
     def observation_space(self, agent):
         if self.observability == 'full':
-            return Discrete(self.graph_size)
+            return Box(low=np.zeros((self.graph_size)), high = self.agent_pop*np.ones((self.graph_size)), dtype=np.float32)
         elif self.observability == 'partial':
-            return Discrete(3)
+            return Box(low=np.zeros((3)), high = self.agent_pop*np.ones((3)), dtype=np.float32)
 
     @functools.lru_cache(maxsize=None)
     def action_space(self, agent):
@@ -87,7 +87,7 @@ class raw_env(AECEnv):
             )
             return
 
-        for i in range(len(self.num_agents)):
+        for i in range(self.agent_pop)):
             print("Agent {} is at position {} and recieved reward {}".format(i, self.agents_positions[i], self.rewards[self.agents[i]]))  #check this later 
 
     def observe(self, agent):
@@ -97,7 +97,7 @@ class raw_env(AECEnv):
         at any time after reset() is called.
         """
         # observation of one agent is the previous state of the other
-        return np.array(self.observations[agent])
+        return np.array(self.observations[agent], dtype = np.float32)
 
     def close(self):
         """
@@ -129,25 +129,33 @@ class raw_env(AECEnv):
         self.infos = {agent: {} for agent in self.agents}
         self.actions = {agent: None for agent in self.agents}
 
-        self.agents_postions = np.random.choice(self.nodes, self.num_agents)  #randomly select initial positions for agents
+        self.agents_positions = {agent: 0 for agent in self.agents}
+        for i in self.agents:
+          self.agents_positions[i] = np.random.choice(self.nodes)  #randomly select initial positions for agents
         self.map = np.zeros((self.graph_size))
-        for i in range(self.num_agents):
+        for i in self.agents:
             self.map[self.agents_positions[i]] += 1
-
-        self.agent_fov = np.zeros((self.num_agents, 3))
-        for i in range(self.num_agents):
-            if self.agents_positions[i] == 0:
-                self.agent_fov[i, 0] = self.map[self.graph_size - 1]
-                self.agent_fov[i, 1] = self.map[i]
-                self.agent_fov[i, 2] = self.map[i + 1]
-            elif self.agents_positions[i] == self.graph_size - 1:
-                self.agent_fov[i, 0] = self.map[i - 1]
-                self.agent_fov[i, 1] = self.map[i]
+        
+        self.agent_fov = np.zeros((self.agent_pop, 3))
+        for i, agent in enumerate(self.agents):
+            if self.agents_positions[agent] == 0:
+                pos_minus = self.graph_size - 1
+                self.agent_fov[i, 0] = self.map[pos_minus]
+                self.agent_fov[i, 1] = self.map[0]
+                self.agent_fov[i, 2] = self.map[1]
+            elif self.agents_positions[agent] == self.graph_size - 1:
+                pos_minus = self.graph_size - 2
+                pos = self.graph_size - 1 
+                self.agent_fov[i, 0] = self.map[pos_minus]
+                self.agent_fov[i, 1] = self.map[pos]
                 self.agent_fov[i, 2] = self.map[0]
             else:
-                self.agent_fov[i, 0] = self.map[i - 1]
-                self.agent_fov[i, 1] = self.map[i]
-                self.agent_fov[i, 2] = self.map[i + 1]
+                pos_minus = self.agents_positions[agent] - 1
+                pos = self.agents_positions[agent]
+                pos_plus = self.agents_positions[agent] + 1
+                self.agent_fov[i, 0] = self.map[pos_minus]
+                self.agent_fov[i, 1] = self.map[pos]
+                self.agent_fov[i, 2] = self.map[pos_plus]
 
         self.state = {agent: self.map for agent in self.agents}
 
@@ -218,26 +226,26 @@ class raw_env(AECEnv):
             #reset and update map
             #can set back to 0 here as updating all at once - if sequantial would need to take away from previous location and add to new location
             self.map = np.zeros((self.graph_size))
-            for i in range(self.num_agents):
+            for i in self.agents:
                 self.map[self.agents_positions[i]] += 1
 
             #update state
             self.state = {agent: self.map for agent in self.agents}
             
             #calculate updated field of view for each agent
-            for i in range(self.num_agents):
-                if self.agents_positions[i] == 0:
+            for i, agent in enumerate(self.agents):
+                if self.agents_positions[agent] == 0:
                     self.agent_fov[i, 0] = self.map[self.graph_size - 1]
-                    self.agent_fov[i, 1] = self.map[i]
-                    self.agent_fov[i, 2] = self.map[i + 1]
-                elif self.agents_positions[i] == self.graph_size - 1:
-                    self.agent_fov[i, 0] = self.map[i - 1]
-                    self.agent_fov[i, 1] = self.map[i]
+                    self.agent_fov[i, 1] = self.map[0]
+                    self.agent_fov[i, 2] = self.map[1]
+                elif self.agents_positions[agent] == self.graph_size - 1:
+                    self.agent_fov[i, 0] = self.map[self.graph_size - 2]
+                    self.agent_fov[i, 1] = self.map[self.graph_size - 1]
                     self.agent_fov[i, 2] = self.map[0]
                 else:
-                    self.agent_fov[i, 0] = self.map[i - 1]
-                    self.agent_fov[i, 1] = self.map[i]
-                    self.agent_fov[i, 2] = self.map[i + 1]
+                    self.agent_fov[i, 0] = self.map[self.agents_positions[agent] - 1]
+                    self.agent_fov[i, 1] = self.map[self.agents_positions[agent]]
+                    self.agent_fov[i, 2] = self.map[self.agents_positions[agent] + 1]
 
             #calculate rewards
             for i in self.agents:
