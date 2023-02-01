@@ -56,10 +56,10 @@ class raw_env(AECEnv):
         #self.agent_selection = agent_selector(self.agent_order)
         self._action_spaces = {agent: Discrete(3) for agent in self.possible_agents}
         if self.observability == 'full':
-            self._observation_spaces = Dict({agent:{'pos': Discrete(self.graph_size), 'map': Box(low=np.zeros((self.graph_size)), high = self.agent_pop*np.ones((self.graph_size)),dtype=np.float32)} for agent in self.possible_agents})  #nested dict observation space to include position
+            self._observation_spaces = Dict({agent: Dict({'pos': Discrete(self.graph_size), 'map': Box(low=np.zeros((self.graph_size)), high = self.agent_pop*np.ones((self.graph_size)),dtype=np.float32)}) for agent in self.possible_agents})  #nested dict observation space to include position
             #self._observation_spaces = {agent: Box(low=np.zeros((self.graph_size)), high = self.agent_pop*np.ones((self.graph_size)),dtype=np.float32) for agent in self.possible_agents}
         elif self.observability == 'partial':
-            self._observation_spaces = Dict({agent:{'pos': Discrete(self.graph_size), 'map': Box(low=np.zeros((3)), high = self.agent_pop*np.ones((3)),dtype=np.float32)} for agent in self.possible_agents})  #nested dict observation space to include position
+            self._observation_spaces = Dict({agent: Dict({'pos': Discrete(self.graph_size), 'map': Box(low=np.zeros((3)), high = self.agent_pop*np.ones((3)),dtype=np.float32)}) for agent in self.possible_agents})  #nested dict observation space to include position
             #self._observation_spaces = {agent: Box(low=np.zeros((3)), high = self.agent_pop*np.ones((3)),dtype=np.float32) for agent in self.possible_agents}
         #self.rewards = {agent: 0 for agent in self.agents}
         #self.dones = {agent: False for agent in self.agents}
@@ -71,9 +71,9 @@ class raw_env(AECEnv):
     @functools.lru_cache(maxsize=None)
     def observation_space(self, agent):
         if self.observability == 'full':
-            return Dict({Discrete(self.graph_size), Box(low=np.zeros((self.graph_size)), high = self.agent_pop*np.ones((self.graph_size)), dtype=np.float32)}) #Box(low=np.zeros((self.graph_size)), high = self.agent_pop*np.ones((self.graph_size)), dtype=np.float32)
+            return Dict(Dict({Discrete(self.graph_size), Box(low=np.zeros((self.graph_size)), high = self.agent_pop*np.ones((self.graph_size)), dtype=np.float32)})) #Box(low=np.zeros((self.graph_size)), high = self.agent_pop*np.ones((self.graph_size)), dtype=np.float32)
         elif self.observability == 'partial':
-            return Dict({Discrete(self.graph_size), Box(low=np.zeros((3)), high = self.agent_pop*np.ones((3)), dtype=np.float32)})#Box(low=np.zeros((3)), high = self.agent_pop*np.ones((3)), dtype=np.float32)
+            return Dict(Dict({Discrete(self.graph_size), Box(low=np.zeros((3)), high = self.agent_pop*np.ones((3)), dtype=np.float32)}))#Box(low=np.zeros((3)), high = self.agent_pop*np.ones((3)), dtype=np.float32)
 
     @functools.lru_cache(maxsize=None)
     def action_space(self, agent):
