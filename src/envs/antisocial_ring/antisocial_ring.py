@@ -3,8 +3,10 @@ import gymnasium as gym
 import numpy as np
 from gymnasium.spaces import Dict, Discrete, Box
 
-from pettingzoo import AECEnv
-from pettingzoo.utils import agent_selector, wrappers
+#from pettingzoo import AECEnv
+from pettingzoo import ParallelEnv
+from pettingzoo.utils import parallel_to_aec, wrappers
+#from pettingzoo.utils import agent_selector, wrappers
 
 LEFT = 0
 RIGHT = 1
@@ -27,7 +29,16 @@ def env(render_mode = None):
     env = wrappers.OrderEnforcingWrapper(env)
     return env
 
-class raw_env(AECEnv):
+def raw_env(render_mode = None):
+    """
+    To support the AEC API, the raw_env() function just uses the from_parallel
+    function to convert from a ParallelEnv to an AEC env
+    """
+    env = parallel_env(render_mode=render_mode)
+    env = parallel_to_aec(env)
+    return env
+
+class parallel_env(ParallelEnv):
     metadata = {'render.modes': ['human'], 'name': "antisocial_ring_v0", 'observability': ['full', 'partial']}
 
     def __init__(self, render_mode = None, observability = 'full'):
@@ -55,7 +66,7 @@ class raw_env(AECEnv):
         self.agent_name_mapping = dict(zip(self.possible_agents, list(range(self.agent_pop))))
         #self.agent_selection = agent_selector(self.agent_order)
         self._action_spaces = {agent: Discrete(3) for agent in self.possible_agents}
-        if self.observability == 'full':
+        if self.observability == 'full':    #parallel env example doesn't have these definitions 
             #self._observation_spaces = Dict({agent: Dict({'pos': Discrete(self.graph_size), 'map': Box(low=np.zeros((self.graph_size)), high = self.agent_pop*np.ones((self.graph_size)),dtype=np.float32)}) for agent in self.possible_agents})  #nested dict observation space to include position
             self._observation_spaces = {agent: Box(low=np.zeros((self.graph_size + 1)), high = self.agent_pop*np.ones((self.graph_size +1)),dtype=np.float32) for agent in self.possible_agents}
         elif self.observability == 'partial':
@@ -124,12 +135,12 @@ class raw_env(AECEnv):
         Here it sets up the state dictionary which is used by step() and the observations dictionary which is used by step() and observe()
         """
         self.agents = self.possible_agents[:]
-        self.rewards = {agent: 0 for agent in self.agents}
-        self._cumulative_rewards = {agent: 0 for agent in self.agents}
-        self.terminations = {agent: False for agent in self.agents}
-        self.truncations = {agent: False for agent in self.agents}
-        self.infos = {agent: {} for agent in self.agents}
-        self.actions = {agent: None for agent in self.agents}
+        #self.rewards = {agent: 0 for agent in self.agents}
+        #self._cumulative_rewards = {agent: 0 for agent in self.agents}
+        #self.terminations = {agent: False for agent in self.agents}
+        #self.truncations = {agent: False for agent in self.agents}
+        #self.infos = {agent: {} for agent in self.agents}
+        #self.actions = {agent: None for agent in self.agents}
 
         self.agents_positions = {agent: 0 for agent in self.agents}
         for i in self.agents:
@@ -171,10 +182,11 @@ class raw_env(AECEnv):
         """
         Our agent_selector utility allows easy cyclic stepping through the agents list.
         """
-        self._agent_selector = agent_selector(self.agents)
-        self.agent_selection = self._agent_selector.next()
+        #self._agent_selector = agent_selector(self.agents)
+        #self.agent_selection = self._agent_selector.next()
+        return self.observations
 
-    def step(self, action):
+    def step(self, actions):
         """
         step(action) takes in an action for the current agent (specified by
         agent_selection) and needs to update
@@ -186,45 +198,54 @@ class raw_env(AECEnv):
         - agent_selection (to the next agent)
         And any internal state used by observe() or render()
         """
-        if (
-            self.terminations[self.agent_selection]
-            or self.truncations[self.agent_selection]
-        ):
+        self.rewards = {agent: 0 for agent in self.agents}
+        self.terminations = {agent: False for agent in self.agents}
+        self.truncations = {agent: False for agent in self.agents}
+        self.infos = {agent: {} for agent in self.agents}
+        #if (
+            #self.terminations[self.agent_selection]
+            #or self.truncations[self.agent_selection]
+        #):
             # handles stepping an agent which is already dead
             # accepts a None action for the one agent, and moves the agent_selection to
             # the next dead agent,  or if there are no more dead agents, to the next live agent
-            self._was_dead_step(action)
-            return
+            #self._was_dead_step(action)
+            #return
+        if not actions:
+            self.agents = []
+            return {}, {}, {}, {}, {}
+        #agent = self.agent_selection
 
-        agent = self.agent_selection
+
+
 
         # the agent which stepped last had its _cumulative_rewards accounted for
         # (because it was returned by last()), so the _cumulative_rewards for this
         # agent should start again at 0
-        self._cumulative_rewards[agent] = 0
+        #self._cumulative_rewards[agent] = 0
 
         # save action of selected agent 
-        self.actions[self.agent_selection] = action  
+        #self.actions[self.agent_selection] = action  
 
         # collect reward if it is the last agent to act - want to collect rewards at the end or as step through?
-        if self._agent_selector.is_last():
+        #if self._agent_selector.is_last():
             # rewards for all agents are placed in the .rewards dictionary
             # move agents to new positions
-            for i in self.agents:
-                if self.actions[i] == 0:
-                    if self.agents_positions[i] == 0:
-                        self.agents_positions[i] = self.graph_size - 1
-                    else:
-                        self.agents_positions[i] = self.agents_positions[i] - 1
-                elif self.actions[i] == 1:
-                    if self.agents_positions[i] == self.graph_size - 1:
-                        self.agents_positions[i] = 0
-                    else:
-                        self.agents_positions[i] = self.agents_positions[i] + 1
-                elif self.actions[i] == 2:
-                    self.agents_positions[i] = self.agents_positions[i]
+        for i in self.agents:
+            if self.actions[i] == 0:
+                if self.agents_positions[i] == 0:
+                    self.agents_positions[i] = self.graph_size - 1
                 else:
-                    raise ValueError("Invalid action.")
+                    self.agents_positions[i] = self.agents_positions[i] - 1
+            elif self.actions[i] == 1:
+                if self.agents_positions[i] == self.graph_size - 1:
+                    self.agents_positions[i] = 0
+                else:
+                    self.agents_positions[i] = self.agents_positions[i] + 1
+            elif self.actions[i] == 2:
+                self.agents_positions[i] = self.agents_positions[i]
+            else:
+                raise ValueError("Invalid action.")
             #reset and update map
             #can set back to 0 here as updating all at once - if sequantial would need to take away from previous location and add to new location
             self.map = np.zeros((self.graph_size))
@@ -248,7 +269,7 @@ class raw_env(AECEnv):
                     self.agent_fov[i, 0] = self.map[self.agents_positions[agent] - 1]
                     self.agent_fov[i, 1] = self.map[self.agents_positions[agent]]
                     self.agent_fov[i, 2] = self.map[self.agents_positions[agent] + 1]
-
+            
             #calculate rewards
             for i in self.agents:
                 if self.map[self.agents_positions[i]] > 1:
@@ -262,6 +283,10 @@ class raw_env(AECEnv):
             self.truncations = {
                 agent: self.num_moves >= MAX_ITERS for agent in self.agents
             }
+            self.infos = {agent: {} for agent in self.agents}
+
+            if env_truncation:
+                self.agents = []
 
             # calculate observations for updated state
             if self.observability == 'full':
@@ -272,15 +297,17 @@ class raw_env(AECEnv):
                 self.observations = {agent: self.agent_fov[i] for i, agent in enumerate(self.agents)}
                 #self.observations = {agent:{'pos': self.agents_positions[agent], 'fov': self.agent_fov[i]} for i, agent in enumerate(self.agents)}
 
-        else:
+        #else:
             # should the state and observations update each step or only at the end?
             # no rewards are allocated until both players give an action
-            self._clear_rewards()
+            #self._clear_rewards()
 
         # selects the next agent.
-        self.agent_selection = self._agent_selector.next()
+        #self.agent_selection = self._agent_selector.next()
         # Adds .rewards to ._cumulative_rewards
-        self._accumulate_rewards()
+        #self._accumulate_rewards()
 
         if self.render_mode == "human":
             self.render()
+
+        return self.observations, self.rewards, self.terminations, self.truncations, self.infos
