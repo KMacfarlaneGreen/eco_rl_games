@@ -3,10 +3,8 @@ import gymnasium as gym
 import numpy as np
 from gymnasium.spaces import Dict, Discrete, Box
 
-#from pettingzoo import AECEnv
 from pettingzoo import ParallelEnv
 from pettingzoo.utils import parallel_to_aec, wrappers
-#from pettingzoo.utils import agent_selector, wrappers
 
 LEFT = 0
 RIGHT = 1
@@ -53,38 +51,22 @@ class parallel_env(ParallelEnv):
         super().__init__()
         self.agent_pop = 5
         self.graph_size = 20
-        self.state_size = self.graph_size   #how to represent state?
-        #self.agents_positions = []
+        self.state_size = self.graph_size   
         self.nodes = [i for i in range(self.graph_size)]
-        #self.positions_idx = []
-        #self.num_episodes = 0
-        #self.terminal = False
         self.render_mode = render_mode
         self.observability = observability
         self.possible_agents = [str(i) for i in range(self.agent_pop)]
-        #self.agent_order = [str(i) for i in range(self.num_agents)]
         self.agent_name_mapping = dict(zip(self.possible_agents, list(range(self.agent_pop))))
-        #self.agent_selection = agent_selector(self.agent_order)
-        self._action_spaces = {agent: Discrete(3) for agent in self.possible_agents}
-        if self.observability == 'full':    #parallel env example doesn't have these definitions 
-            #self._observation_spaces = Dict({agent: Dict({'pos': Discrete(self.graph_size), 'map': Box(low=np.zeros((self.graph_size)), high = self.agent_pop*np.ones((self.graph_size)),dtype=np.float32)}) for agent in self.possible_agents})  #nested dict observation space to include position
-            self._observation_spaces = {agent: Box(low=np.zeros((self.graph_size + 1)), high = self.agent_pop*np.ones((self.graph_size +1)),dtype=np.float32) for agent in self.possible_agents}
-        elif self.observability == 'partial':
-            #self._observation_spaces = Dict({agent: Dict({'pos': Discrete(self.graph_size), 'map': Box(low=np.zeros((3)), high = self.agent_pop*np.ones((3)),dtype=np.float32)}) for agent in self.possible_agents})  #nested dict observation space to include position
-            self._observation_spaces = {agent: Box(low=np.zeros((4)), high = self.agent_pop*np.ones((4)),dtype=np.float32) for agent in self.possible_agents}
-        #self.rewards = {agent: 0 for agent in self.agents}
-        #self.dones = {agent: False for agent in self.agents}
-        #self.infos = {agent: {} for agent in self.agents}
-        #self.viewer = None
+        #self._action_spaces = {agent: Discrete(3) for agent in self.possible_agents}
 
     # this cache ensures that same space object is returned for the same agent
     # allows action space seeding to work as expected
     @functools.lru_cache(maxsize=None)
     def observation_space(self, agent):
         if self.observability == 'full':
-            return Box(low=np.zeros((self.graph_size+1)), high = self.agent_pop*np.ones((self.graph_size+1)), dtype=np.float32) #Dict(Dict({Discrete(self.graph_size), Box(low=np.zeros((self.graph_size)), high = self.agent_pop*np.ones((self.graph_size)), dtype=np.float32)})) 
+            return Box(low=np.zeros((self.graph_size)), high = self.agent_pop*np.ones((self.graph_size)), dtype=np.float32) #Dict(Dict({Discrete(self.graph_size), Box(low=np.zeros((self.graph_size)), high = self.agent_pop*np.ones((self.graph_size)), dtype=np.float32)})) 
         elif self.observability == 'partial':
-            return Box(low=np.zeros((4)), high = self.agent_pop*np.ones((4)), dtype=np.float32) #Dict(Dict({Discrete(self.graph_size), Box(low=np.zeros((3)), high = self.agent_pop*np.ones((3)), dtype=np.float32)}))
+            return Box(low=np.zeros((3)), high = self.agent_pop*np.ones((3)), dtype=np.float32) #Dict(Dict({Discrete(self.graph_size), Box(low=np.zeros((3)), high = self.agent_pop*np.ones((3)), dtype=np.float32)}))
 
     @functools.lru_cache(maxsize=None)
     def action_space(self, agent):
@@ -103,14 +85,14 @@ class parallel_env(ParallelEnv):
         for i in range(self.agent_pop):
             print("Agent {} is at position {} and recieved reward {}".format(i, self.agents_positions[i], self.rewards[self.agents[i]]))  #check this later 
 
-    def observe(self, agent):
+    #def observe(self, agent):
         """
         Observe should return the observation of the specified agent. This function
         should return a sane observation (though not necessarily the most up to date possible)
         at any time after reset() is called.
         """
         # observation of one agent is the previous state of the other
-        return np.array(self.observations[agent], dtype = np.float32)
+        #return np.array(self.observations[agent], dtype = np.float32)
 
     def close(self):
         """
@@ -135,13 +117,6 @@ class parallel_env(ParallelEnv):
         Here it sets up the state dictionary which is used by step() and the observations dictionary which is used by step() and observe()
         """
         self.agents = self.possible_agents[:]
-        #self.rewards = {agent: 0 for agent in self.agents}
-        #self._cumulative_rewards = {agent: 0 for agent in self.agents}
-        #self.terminations = {agent: False for agent in self.agents}
-        #self.truncations = {agent: False for agent in self.agents}
-        #self.infos = {agent: {} for agent in self.agents}
-        #self.actions = {agent: None for agent in self.agents}
-
         self.agents_positions = {agent: 0 for agent in self.agents}
         for i in self.agents:
           self.agents_positions[i] = np.random.choice(self.nodes)  #randomly select initial positions for agents
@@ -173,18 +148,16 @@ class parallel_env(ParallelEnv):
         self.state = {agent: self.map for agent in self.agents}
 
         if self.observability == 'full':
-            self.observations = {agent: self.map for agent in self.agents}     #how to add agent's position to the observation - add to map/fov?
+            observations = {agent: self.map for agent in self.agents}     #how to add agent's position to the observation - add to map/fov?
 
         elif self.observability == 'partial':
-            self.observations = {agent: self.agent_fov[i] for i, agent in enumerate(self.agents)}
+            observations = {agent: self.agent_fov[i] for i, agent in enumerate(self.agents)}
 
         self.num_moves = 0
         """
         Our agent_selector utility allows easy cyclic stepping through the agents list.
         """
-        #self._agent_selector = agent_selector(self.agents)
-        #self.agent_selection = self._agent_selector.next()
-        return self.observations
+        return observations
 
     def step(self, actions):
         """
@@ -199,50 +172,27 @@ class parallel_env(ParallelEnv):
         And any internal state used by observe() or render()
         """
         self.rewards = {agent: 0 for agent in self.agents}
-        self.terminations = {agent: False for agent in self.agents}
-        self.truncations = {agent: False for agent in self.agents}
-        self.infos = {agent: {} for agent in self.agents}
-        #if (
-            #self.terminations[self.agent_selection]
-            #or self.truncations[self.agent_selection]
-        #):
-            # handles stepping an agent which is already dead
-            # accepts a None action for the one agent, and moves the agent_selection to
-            # the next dead agent,  or if there are no more dead agents, to the next live agent
-            #self._was_dead_step(action)
-            #return
+        terminations = {agent: False for agent in self.agents}
+        infos = {agent: {} for agent in self.agents}
         if not actions:
+            print('empty')
             self.agents = []
             return {}, {}, {}, {}, {}
-        #agent = self.agent_selection
 
-
-
-
-        # the agent which stepped last had its _cumulative_rewards accounted for
-        # (because it was returned by last()), so the _cumulative_rewards for this
-        # agent should start again at 0
-        #self._cumulative_rewards[agent] = 0
-
-        # save action of selected agent 
-        #self.actions[self.agent_selection] = action  
-
-        # collect reward if it is the last agent to act - want to collect rewards at the end or as step through?
-        #if self._agent_selector.is_last():
-            # rewards for all agents are placed in the .rewards dictionary
-            # move agents to new positions
+        # rewards for all agents are placed in the .rewards dictionary
+        # move agents to new positions
         for i in self.agents:
-            if self.actions[i] == 0:
+            if actions[i] == 0:
                 if self.agents_positions[i] == 0:
                     self.agents_positions[i] = self.graph_size - 1
                 else:
                     self.agents_positions[i] = self.agents_positions[i] - 1
-            elif self.actions[i] == 1:
+            elif actions[i] == 1:
                 if self.agents_positions[i] == self.graph_size - 1:
                     self.agents_positions[i] = 0
                 else:
                     self.agents_positions[i] = self.agents_positions[i] + 1
-            elif self.actions[i] == 2:
+            elif actions[i] == 2:
                 self.agents_positions[i] = self.agents_positions[i]
             else:
                 raise ValueError("Invalid action.")
@@ -280,34 +230,22 @@ class parallel_env(ParallelEnv):
 
             self.num_moves += 1
             # The truncations dictionary must be updated for all players.
-            self.truncations = {
-                agent: self.num_moves >= MAX_ITERS for agent in self.agents
-            }
-            self.infos = {agent: {} for agent in self.agents}
+            env_truncation = self.num_moves >= MAX_ITERS
+            truncations = {agent: env_truncation for agent in self.agents}
 
             if env_truncation:
                 self.agents = []
 
             # calculate observations for updated state
             if self.observability == 'full':
-                self.observations = {agent: self.map for agent in self.agents}
+                observations = {agent: self.map for agent in self.agents}
                 #self.observations = {agent:{'pos': self.agents_positions[agent], 'map': self.map} for agent in self.agents}
             
             elif self.observability == 'partial':
-                self.observations = {agent: self.agent_fov[i] for i, agent in enumerate(self.agents)}
+                observations = {agent: self.agent_fov[i] for i, agent in enumerate(self.agents)}
                 #self.observations = {agent:{'pos': self.agents_positions[agent], 'fov': self.agent_fov[i]} for i, agent in enumerate(self.agents)}
-
-        #else:
-            # should the state and observations update each step or only at the end?
-            # no rewards are allocated until both players give an action
-            #self._clear_rewards()
-
-        # selects the next agent.
-        #self.agent_selection = self._agent_selector.next()
-        # Adds .rewards to ._cumulative_rewards
-        #self._accumulate_rewards()
 
         if self.render_mode == "human":
             self.render()
 
-        return self.observations, self.rewards, self.terminations, self.truncations, self.infos
+        return observations, self.rewards, terminations, truncations, infos
