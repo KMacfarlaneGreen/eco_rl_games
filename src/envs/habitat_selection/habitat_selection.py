@@ -3,8 +3,8 @@ import gymnasium as gym
 import numpy as np
 from gymnasium.spaces import Dict, Discrete, Box
 
-from pettingzoo import AECEnv
-from pettingzoo.utils import agent_selector, wrappers
+from pettingzoo import ParallelEnv
+from pettingzoo.utils import parallel_to_aec, wrappers
 
 MAX_ITERS = 1000
 
@@ -56,7 +56,7 @@ class parallel_env(ParallelEnv):
 
     @functools.lru_cache(maxsize=None)
     def observation_space(self, agent):
-        return Box(low=np.zeros((1 + 2*self.graph_size)), high = 10*np.ones((1 + 2*self.graph_size)), dtype=np.float32) #agent's current node, quality of each node, and number of agents at each node
+        return Box(low=np.zeros((1 + 2*self.graph_size)), high = self.graph_size*np.ones((1 + 2*self.graph_size)), dtype=np.float32) #agent's current node, quality of each node, and number of agents at each node
     
     @functools.lru_cache(maxsize=None)
     def action_space(self, agent):

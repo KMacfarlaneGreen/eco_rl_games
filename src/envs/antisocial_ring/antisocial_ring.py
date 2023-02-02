@@ -57,16 +57,15 @@ class parallel_env(ParallelEnv):
         self.observability = observability
         self.possible_agents = [str(i) for i in range(self.agent_pop)]
         self.agent_name_mapping = dict(zip(self.possible_agents, list(range(self.agent_pop))))
-        #self._action_spaces = {agent: Discrete(3) for agent in self.possible_agents}
 
     # this cache ensures that same space object is returned for the same agent
     # allows action space seeding to work as expected
     @functools.lru_cache(maxsize=None)
     def observation_space(self, agent):
         if self.observability == 'full':
-            return Box(low=np.zeros((self.graph_size)), high = self.agent_pop*np.ones((self.graph_size)), dtype=np.float32) #Dict(Dict({Discrete(self.graph_size), Box(low=np.zeros((self.graph_size)), high = self.agent_pop*np.ones((self.graph_size)), dtype=np.float32)})) 
+            return Box(low=np.zeros((1+self.graph_size)), high = self.graph_size*np.ones((1+self.graph_size)), dtype=np.float32) #Dict(Dict({Discrete(self.graph_size), Box(low=np.zeros((self.graph_size)), high = self.agent_pop*np.ones((self.graph_size)), dtype=np.float32)})) 
         elif self.observability == 'partial':
-            return Box(low=np.zeros((3)), high = self.agent_pop*np.ones((3)), dtype=np.float32) #Dict(Dict({Discrete(self.graph_size), Box(low=np.zeros((3)), high = self.agent_pop*np.ones((3)), dtype=np.float32)}))
+            return Box(low=np.zeros((4)), high = self.graph_size*np.ones((4)), dtype=np.float32) #Dict(Dict({Discrete(self.graph_size), Box(low=np.zeros((3)), high = self.agent_pop*np.ones((3)), dtype=np.float32)}))
 
     @functools.lru_cache(maxsize=None)
     def action_space(self, agent):
@@ -84,15 +83,6 @@ class parallel_env(ParallelEnv):
 
         for i in range(self.agent_pop):
             print("Agent {} is at position {} and recieved reward {}".format(i, self.agents_positions[i], self.rewards[self.agents[i]]))  #check this later 
-
-    #def observe(self, agent):
-        """
-        Observe should return the observation of the specified agent. This function
-        should return a sane observation (though not necessarily the most up to date possible)
-        at any time after reset() is called.
-        """
-        # observation of one agent is the previous state of the other
-        #return np.array(self.observations[agent], dtype = np.float32)
 
     def close(self):
         """
@@ -146,10 +136,10 @@ class parallel_env(ParallelEnv):
         self.state = {agent: self.map for agent in self.agents}
 
         if self.observability == 'full':
-            observations = {agent: self.map for agent in self.agents}     #how to add agent's position to the observation - add to map/fov?
+            observations = {agent: np.hstack((self.agents_positions[agent], self.map)) for agent in self.agents}     #how to add agent's position to the observation - add to map/fov?
 
         elif self.observability == 'partial':
-            observations = {agent: self.agent_fov[i] for i, agent in enumerate(self.agents)}
+            observations = {agent: np.hstack((self.agents_positions[agent], self.agent_fov[i])) for i, agent in enumerate(self.agents)}
 
         self.num_moves = 0
 
@@ -234,11 +224,11 @@ class parallel_env(ParallelEnv):
 
             # calculate observations for updated state
             if self.observability == 'full':
-                observations = {agent: self.map for agent in self.agents}
+                observations = {agent: np.hstack((self.agents_positions[agent], self.map)) for agent in self.agents}
                 #self.observations = {agent:{'pos': self.agents_positions[agent], 'map': self.map} for agent in self.agents}
             
             elif self.observability == 'partial':
-                observations = {agent: self.agent_fov[i] for i, agent in enumerate(self.agents)}
+                observations = {agent: np.hstack((self.agents_positions[agent],self.agent_fov[i])) for i, agent in enumerate(self.agents)}
                 #self.observations = {agent:{'pos': self.agents_positions[agent], 'fov': self.agent_fov[i]} for i, agent in enumerate(self.agents)}
 
         if self.render_mode == "human":
