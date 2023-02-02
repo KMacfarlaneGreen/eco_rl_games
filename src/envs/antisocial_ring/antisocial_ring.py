@@ -117,9 +117,7 @@ class parallel_env(ParallelEnv):
         Here it sets up the state dictionary which is used by step() and the observations dictionary which is used by step() and observe()
         """
         self.agents = self.possible_agents[:]
-        self.agents_positions = {agent: 0 for agent in self.agents}
-        for i in self.agents:
-          self.agents_positions[i] = np.random.choice(self.nodes)  #randomly select initial positions for agents
+        self.agents_positions = {agent: np.random.choice(self.nodes) for agent in self.agents} #randomly select initial positions for agents
         self.map = np.zeros((self.graph_size))
         for i in self.agents:
             self.map[self.agents_positions[i]] += 1
@@ -154,9 +152,7 @@ class parallel_env(ParallelEnv):
             observations = {agent: self.agent_fov[i] for i, agent in enumerate(self.agents)}
 
         self.num_moves = 0
-        """
-        Our agent_selector utility allows easy cyclic stepping through the agents list.
-        """
+
         return observations
 
     def step(self, actions):
