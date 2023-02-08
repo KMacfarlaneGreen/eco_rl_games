@@ -39,7 +39,7 @@ def raw_env(render_mode = None):
 class parallel_env(ParallelEnv):
     metadata = {'render.modes': ['human'], 'name': "antisocial_ring_v0", 'observability': ['full', 'partial']}
 
-    def __init__(self, render_mode = None, observability = 'full'):
+    def __init__(self, render_mode = None, observability = 'partial'):
         """
          The init method takes in environment arguments and
          should define the following attributes:
@@ -65,7 +65,7 @@ class parallel_env(ParallelEnv):
         if self.observability == 'full':
             return Box(low=np.zeros((1+self.graph_size)), high = self.graph_size*np.ones((1+self.graph_size)), dtype=np.float32) #Dict(Dict({Discrete(self.graph_size), Box(low=np.zeros((self.graph_size)), high = self.agent_pop*np.ones((self.graph_size)), dtype=np.float32)})) 
         elif self.observability == 'partial':
-            return Box(low=np.zeros((4)), high = self.graph_size*np.ones((4)), dtype=np.float32) #Dict(Dict({Discrete(self.graph_size), Box(low=np.zeros((3)), high = self.agent_pop*np.ones((3)), dtype=np.float32)}))
+            return Box(low=np.zeros((3)), high = self.graph_size*np.ones((3)), dtype=np.float32) #Dict(Dict({Discrete(self.graph_size), Box(low=np.zeros((3)), high = self.agent_pop*np.ones((3)), dtype=np.float32)}))
 
     @functools.lru_cache(maxsize=None)
     def action_space(self, agent):
@@ -139,7 +139,7 @@ class parallel_env(ParallelEnv):
             observations = {agent: np.hstack((self.agents_positions[agent], self.map)) for agent in self.agents}     #how to add agent's position to the observation - add to map/fov?
 
         elif self.observability == 'partial':
-            observations = {agent: np.hstack((self.agents_positions[agent], self.agent_fov[i])) for i, agent in enumerate(self.agents)}
+            observations = {agent: self.agent_fov[i] for i, agent in enumerate(self.agents)}
 
         self.num_moves = 0
 
@@ -228,7 +228,7 @@ class parallel_env(ParallelEnv):
                 #self.observations = {agent:{'pos': self.agents_positions[agent], 'map': self.map} for agent in self.agents}
             
             elif self.observability == 'partial':
-                observations = {agent: np.hstack((self.agents_positions[agent],self.agent_fov[i])) for i, agent in enumerate(self.agents)}
+                observations = {agent: self.agent_fov[i] for i, agent in enumerate(self.agents)}
                 #self.observations = {agent:{'pos': self.agents_positions[agent], 'fov': self.agent_fov[i]} for i, agent in enumerate(self.agents)}
 
         if self.render_mode == "human":
