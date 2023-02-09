@@ -168,3 +168,46 @@ if __name__ == "__main__":
         # Look at what value should be for me?
         check_learning_achieved(results, 5.0)
     #print("run_same_policy: ok.")
+
+if __name__ == "__main__":
+    args = parser.parse_args()
+    env = ParallelPettingZooEnv(env_creator(args))
+    print(env.reset())
+    env_name = "AntisocialRing"
+    register_env(env_name, lambda config: ParallelPettingZooEnv(env_creator(config)))
+
+    algo = (PPOConfig()
+            .rollouts(num_rollout_workers=0)
+            .resources(num_gpus=1)
+            .environment(env=env_name)
+            .multi_agent(policies={"shared_policy":(None, env.observation_space, env.action_space, {}),},  #"gamma":0.99
+            policy_mapping_fn = lambda agent_id, episode, worker: "shared_policy")
+            .build()
+            )
+    
+    for i in range(10):
+      result = algo.train()
+      print(pretty_print(result))
+
+      if i % 5 == 0:
+        checkpoint_dir = algo.save()
+        print(f"Checkpoint saved on directory {checkpoint_dir}")
+    #ray.init()
+
+    #stop = {
+        #"training_iteration": args.stop_iters,
+        #"timesteps_total": args.stop_timesteps,
+        #"episode_reward_mean": args.stop_reward,
+    #}
+
+    #config = PPOConfig().environment(env_name, observation_space = Box(low=np.zeros((21)), high = 20*np.ones((21)), dtype=np.float32), action_space = Discrete(3)).framework(args.framework)
+
+    #results = tune.Tuner(
+        #"DQN", param_space=config, run_config=air.RunConfig(stop=stop, verbose=1)
+    #).fit()
+
+    #if args.as_test:
+        # Check vs 0.0 as we are playing a zero-sum game.
+        # Look at what value should be for me?
+        #check_learning_achieved(results, 5.0)
+    #print("run_same_policy: ok.")
