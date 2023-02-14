@@ -10,7 +10,7 @@ from ray.tune.logger import pretty_print
 
 #from .antisocial_ring.antisocial_ring import env, raw_env
 #import src.envs.antisocial_ring_v0 as antisocial_ring_v0
-from src.envs.antisocial_ring.antisocial_ring import env, parallel_env
+from src.envs import antisocial_ring_v0
 #edit argument parsers
 
 parser = argparse.ArgumentParser()
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     def env_creator(args):
-      env = parallel_env(render_mode = 'human')
+      env = antisocial_ring_v0.parallel_env(render_mode = 'human')
       return env
 
     env = env_creator({})
