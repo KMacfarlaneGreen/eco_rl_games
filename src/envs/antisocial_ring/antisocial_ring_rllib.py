@@ -9,6 +9,7 @@ LEFT = 0
 RIGHT = 1
 STAY = 2
 MOVES = ['LEFT', 'RIGHT', 'STAY']
+MAX_ITERS = 10000
 
 def make_multiagent(env_name_or_creator):
     return make_multi_agent(env_name_or_creator)
@@ -36,15 +37,16 @@ class AntisocialRingEnv(MultiAgentEnv):
             )
             return
 
-        for i in range(self.agent_pop):
+        for i in range(self.num_agents):
             print("Agent {} is at position {} and recieved reward {}".format(i, self.agents_positions[i], self.rewards[self.agents[i]]))
 
     
-    def reset(self, seed = None, options=None):
+    def reset(self,*,seed = None, options=None):
         #super().reset(seed = seed)
         self.resetted = True
         self.terminateds = set()
         self.truncateds = set()
+        infos = {agent: {} for agent in self.agents}
         
         self.agents_positions = {agent: np.random.choice(self.nodes) for agent in self.agents} #randomly select initial positions for agents
         self.map = np.zeros((self.graph_size))
@@ -71,21 +73,21 @@ class AntisocialRingEnv(MultiAgentEnv):
                 self.agent_fov[i, 0] = self.map[pos_minus]
                 self.agent_fov[i, 1] = self.map[pos]
                 self.agent_fov[i, 2] = self.map[pos_plus]
-
+        self.num_moves = 0
         observations = {agent: self.agent_fov[i] for i, agent in enumerate(self.agents)}
-        return observations
+        return observations, infos
 
     def step(self, actions):
-        print(self.agents)
+        #print(self.agents)
         self.rewards = {agent: 0 for agent in self.agents}
-        print(self.rewards)
+        #print(self.rewards)
         terminations = {agent: False for agent in self.agents}
-        print(terminations)
+        #print(terminations)
         infos = {agent: {} for agent in self.agents}
-        print(infos)
+        #print(infos)
         truncated = {agent:{} for agent in self.agents}
-        print(truncated)
-        print(actions)
+        #print(truncated)
+        #print(actions)
         # rewards for all agents are placed in the .rewards dictionary
         # move agents to new positions
         for i, action in actions.items():
@@ -130,12 +132,19 @@ class AntisocialRingEnv(MultiAgentEnv):
                   self.rewards[i] = -1
               else:
                   self.rewards[i] = 1
-          print(self.rewards)
+          #print(self.rewards)
           observations = {agent: self.agent_fov[i] for i, agent in enumerate(self.agents)}
               #self.observations = {agent:{'pos': self.agents_positions[agent], 'fov': self.agent_fov[i]} for i, agent in enumerate(self.agents)}
-          print(observations)
+          #print(observations)
           if self.render_mode == "human":
               self.render()
-          print(observations,self.rewards, terminations, truncated,infos)
-          return observations, self.rewards, terminations, truncated, infos
 
+          self.num_moves += 1
+          if self.num_moves >= MAX_ITERS:
+            terminations["__all__"] = True
+            truncated["__all__"] = True
+          else:
+            truncated["__all__"] = False
+            terminations["__all__"] = False
+          #print(observations,self.rewards, terminations, truncated,infos)
+          return observations, self.rewards, terminations,truncated, infos

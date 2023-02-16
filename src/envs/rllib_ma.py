@@ -18,6 +18,10 @@ from ray.rllib.utils.framework import try_import_tf
 from ray.rllib.utils.test_utils import check_learning_achieved
 from src.envs.antisocial_ring.antisocial_ring_rllib import AntisocialRingEnv
 
+from ray.air import session
+from ray.air.integrations.wandb import setup_wandb
+from ray.air.integrations.wandb import WandbLoggerCallback
+
 tf1, tf, tfv = try_import_tf()
 
 parser = argparse.ArgumentParser()
@@ -87,6 +91,9 @@ if __name__ == "__main__":
         .multi_agent(policies=policies, policy_mapping_fn=policy_mapping_fn)
         # Use GPUs iff `RLLIB_NUM_GPUS` env var set to > 0.
         .resources(num_gpus=1)
+        .evaluation(evaluation_interval=100,
+        evaluation_duration = 100,
+        evaluation_duration_unit = "timesteps")
         )
 
     stop = {
@@ -98,7 +105,10 @@ if __name__ == "__main__":
     results = tune.Tuner(
         "DQN",
         param_space=config.to_dict(),
-        run_config=air.RunConfig(stop=stop, verbose=1),
+        run_config=air.RunConfig(stop=stop, verbose=1, local_dir="/content/eco_rl_games", name="test_DQN5",callbacks=[
+                WandbLoggerCallback(project="RingDQN")
+            ]
+        ),
         ).fit()
 
     if args.as_test:
