@@ -9,7 +9,7 @@ LEFT = 0
 RIGHT = 1
 STAY = 2
 MOVES = ['LEFT', 'RIGHT', 'STAY']
-MAX_ITERS = 10000
+MAX_ITERS = 100
 
 def make_multiagent(env_name_or_creator):
     return make_multi_agent(env_name_or_creator)
