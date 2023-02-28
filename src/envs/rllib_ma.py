@@ -16,11 +16,19 @@ from ray.rllib.models import ModelCatalog
 from ray.rllib.policy.policy import PolicySpec
 from ray.rllib.utils.framework import try_import_tf
 from ray.rllib.utils.test_utils import check_learning_achieved
+
+#rllib MultiAgentEnv (parallel)
 from src.envs.antisocial_ring.antisocial_ring_rllib import AntisocialRingEnv
 
 from ray.air import session
 from ray.air.integrations.wandb import setup_wandb
 from ray.air.integrations.wandb import WandbLoggerCallback
+
+#for pettingzoo env
+from ray.rllib.env import PettingZooEnv
+from ray.rllib.env.wrappers.pettingzoo_env import ParallelPettingZooEnv
+from ray.tune.registry import register_env
+from src.envs import antisocial_ring_v0
 
 tf1, tf, tfv = try_import_tf()
 
@@ -83,15 +91,21 @@ if __name__ == "__main__":
     def policy_mapping_fn(agent_id, episode, worker, **kwargs):
         pol_id = random.choice(policy_ids)
         return pol_id
+    
+    #pettingzooenv
+    env = PettingZooEnv(antisocial_ring_v0.env())
+
+    register_env("antisocialring", lambda _: PettingZooEnv(antisocial_ring_v0.env()))
 
     config = (
         DQNConfig()
-        .environment(AntisocialRingEnv, env_config={"num_agents": args.num_agents, "graph_size": 10})
+        #.environment(AntisocialRingEnv, env_config={"num_agents": args.num_agents, "graph_size": 10})
+        .environment("antisocialring")
         .framework(args.framework)
         .multi_agent(policies=policies, policy_mapping_fn=policy_mapping_fn)
         # Use GPUs iff `RLLIB_NUM_GPUS` env var set to > 0.
         .resources(num_gpus=1)
-        .evaluation(evaluation_interval=100,
+        .evaluation(evaluation_interval=100, #this not in time steps 
         evaluation_duration = 100,
         evaluation_duration_unit = "timesteps")
         )

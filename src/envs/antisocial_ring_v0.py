@@ -1,1 +1,1 @@
-from .antisocial_ring.antisocial_ring import env, raw_env, parallel_env
+from .antisocial_ring.antisocial_ring_aec import env, raw_env
