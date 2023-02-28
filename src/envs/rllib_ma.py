@@ -1,7 +1,8 @@
 import argparse
 import os
 import random
-
+import numpy as np
+from typing import Dict, Tuple
 import ray
 from ray import air, tune
 from ray.rllib.algorithms.dqn import DQNConfig
@@ -16,6 +17,13 @@ from ray.rllib.models import ModelCatalog
 from ray.rllib.policy.policy import PolicySpec
 from ray.rllib.utils.framework import try_import_tf
 from ray.rllib.utils.test_utils import check_learning_achieved
+
+#callback metrics:
+from ray.rllib.algorithms.callbacks import DefaultCallbacks
+from ray.rllib.env import BaseEnv
+from ray.rllib.evaluation import Episode, RolloutWorker
+from ray.rllib.policy import Policy
+from ray.rllib.policy.sample_batch import SampleBatch
 
 #rllib MultiAgentEnv (parallel)
 from src.envs.antisocial_ring.antisocial_ring_rllib import AntisocialRingEnv
@@ -58,6 +66,82 @@ parser.add_argument(
 parser.add_argument(
     "--stop-reward", type=float, default=500.0, help="Reward at which we stop training."
 )
+
+class MyCallbacks(DefaultCallbacks):
+    def on_episode_start(
+        self,
+        *,
+        worker: RolloutWorker,
+        base_env: BaseEnv,
+        policies: Dict[str, Policy],
+        episode: Episode,
+        env_index: int,
+        **kwargs
+    ):
+        # Make sure this episode has just been started (only initial obs
+        # logged so far).
+        assert episode.length == 0, (
+            "ERROR: `on_episode_start()` callback should be called right "
+            "after env reset!"
+        )
+        print("episode {} (env-idx={}) started.".format(episode.episode_id, env_index))
+        episode.user_data["move_actions"] = []
+        episode.hist_data["stay_actions"] = []
+
+    def on_episode_step(
+        self,
+        *,
+        worker: RolloutWorker,
+        base_env: BaseEnv,
+        policies: Dict[str, Policy],
+        episode: Episode,
+        env_index: int,
+        **kwargs
+    ):
+        # Make sure this episode is ongoing.
+        assert episode.length > 0, (
+            "ERROR: `on_episode_step()` callback should not be called right "
+            "after env reset!"
+        )
+        action = episode.last_for()
+        if action == 2:
+            episode.user_data["stay_actions"].append(action)
+        else:
+            episode.user_data["move_actions"].append(action)
+
+    def on_episode_end(
+        self,
+        *,
+        worker: RolloutWorker,
+        base_env: BaseEnv,
+        policies: Dict[str, Policy],
+        episode: Episode,
+        env_index: int,
+        **kwargs
+    ):
+        # Check if there are multiple episodes in a batch, i.e.
+        # "batch_mode": "truncate_episodes".
+        if worker.policy_config["batch_mode"] == "truncate_episodes":
+            # Make sure this episode is really done.
+            assert episode.batch_builder.policy_collectors["default_policy"].batches[
+                -1
+            ]["dones"][-1], (
+                "ERROR: `on_episode_end()` should only be called "
+                "after episode is done!"
+            )
+        avg_alignment = np.mean(episode.user_data["move_actions"])
+        stay_move_ratio = len(episode.user_data["stay_actions"]) / len(
+            episode.user_data["move_actions"]
+        )
+        print(
+            "episode {} (env-idx={}) ended with length {} and mean alignement "
+            "angles {}".format(
+                episode.episode_id, env_index, episode.length, avg_alignment
+            )
+        )
+        episode.custom_metrics["aligment"] = avg_alignment
+        episode.custom_metrics["ratio"] = stay_move_ratio
+
 
 args = parser.parse_args()
 
@@ -105,7 +189,8 @@ if __name__ == "__main__":
         .multi_agent(policies=policies, policy_mapping_fn=policy_mapping_fn)
         # Use GPUs iff `RLLIB_NUM_GPUS` env var set to > 0.
         .resources(num_gpus=1)
-        .evaluation(evaluation_interval=100, #this not in time steps 
+        .callbacks(MyCallbacks)
+        .evaluation(evaluation_interval=1, #this not in time steps 
         evaluation_duration = 100,
         evaluation_duration_unit = "timesteps")
         )
