@@ -47,7 +47,7 @@ class raw_env(AECEnv):
 
      @functools.lru_cache(maxsize=None)
      def observation_space(self, agent):
-        return Box(low=np.zeros((4)), high = self.agent_pop*np.ones((4)), dtype=np.float32) 
+        return Box(low=np.zeros((3)), high = self.agent_pop*np.ones((3)), dtype=np.float32) 
      @functools.lru_cache(maxsize=None)
      def action_space(self, agent):
         return Discrete(3)
@@ -169,37 +169,32 @@ class raw_env(AECEnv):
          self._cumulative_rewards[agent] = 0
 
          # save action of selected agent 
-         self.actions[self.agent_selection] = action  
+         self.actions[agent] = action  
 
-         # collect reward if it is the last agent to act - want to collect rewards at the end or as step through?
-         if self._agent_selector.is_last():
-             # rewards for all agents are placed in the .rewards dictionary
-             # move agents to new positions
-             for i in self.agents:
-                 if self.actions[i] == 0:
-                     if self.agents_positions[i] == 0:
-                         self.agents_positions[i] = self.graph_size - 1
-                     else:
-                         self.agents_positions[i] = self.agents_positions[i] - 1
-                 elif self.actions[i] == 1:
-                     if self.agents_positions[i] == self.graph_size - 1:
-                         self.agents_positions[i] = 0
-                     else:
-                         self.agents_positions[i] = self.agents_positions[i] + 1
-                 elif self.actions[i] == 2:
-                     self.agents_positions[i] = self.agents_positions[i]
-                 else:
-                     raise ValueError("Invalid action.")
-             #reset and update map
-             
-             self.map = np.zeros((self.graph_size))
-             for i in self.agents:
-                self.map[self.agents_positions[i]] += 1
-            #update state
-             self.state = {agent: self.map for agent in self.agents}
-            
-            #calculate updated field of view for each agent
-             for i, agent in enumerate(self.agents):
+         #remove from map
+         self.map[self.agents_positions[agent]] -= 1
+
+         #update agent position
+         if self.actions[agent] == 0:
+                if self.agents_positions[agent] == 0:
+                    self.agents_positions[agent] = self.graph_size - 1
+                else:
+                    self.agents_positions[agent] = self.agents_positions[agent] - 1
+         elif self.actions[agent] == 1:
+                if self.agents_positions[agent] == self.graph_size - 1:
+                    self.agents_positions[agent] = 0
+                else:
+                    self.agents_positions[agent] = self.agents_positions[agent] + 1
+         elif self.actions[agent] == 2:
+                     self.agents_positions[agent] = self.agents_positions[agent]
+         else:
+                raise ValueError("Invalid action.")
+         #update map
+        
+         self.map[self.agents_positions[agent]] += 1
+
+         #update agent fov
+         for i, agent in enumerate(self.agents):
                 if self.agents_positions[agent] == 0:
                     self.agent_fov[i, 0] = self.map[self.graph_size - 1]
                     self.agent_fov[i, 1] = self.map[0]
@@ -213,27 +208,26 @@ class raw_env(AECEnv):
                      self.agent_fov[i, 1] = self.map[self.agents_positions[agent]]
                      self.agent_fov[i, 2] = self.map[self.agents_positions[agent] + 1]
 
-             #calculate rewards
-             for i in self.agents:
-                 if self.map[self.agents_positions[i]] > 1:
-                      self.rewards[i] = -1
-                 else:
-                    self.rewards[i] = 1
-            
+
+         #update observations
+         self.observations = {agent: self.agent_fov[i] for i, agent in enumerate(self.agents)}
+
+         #calculate local reward
+         if self.map[self.agents_positions[agent]] > 1:
+                self.rewards[agent] = -1
+         else:
+                self.rewards[agent] = 1
+         
+         if self._agent_selector.is_last():
+        
              self.num_moves += 1
             # The truncations dictionary must be updated for all players.
              self.truncations = {
                  agent: self.num_moves >= MAX_ITERS for agent in self.agents
              }
-
-             # calculate observations for updated state
-             self.observations = {agent: self.agent_fov[i] for i, agent in enumerate(self.agents)}
-                 #self.observations = {agent:{'pos': self.agents_positions[agent], 'fov': self.agent_fov[i]} for i, agent in enumerate(self.agents)}
-
-         else:
-             # should the state and observations update each step or only at the end?
-             # no rewards are allocated until both players give an action
-             self._clear_rewards()
+             self.terminations = {
+                 agent: self.num_moves >= MAX_ITERS for agent in self.agents
+             }
 
          # selects the next agent.
          self.agent_selection = self._agent_selector.next()
