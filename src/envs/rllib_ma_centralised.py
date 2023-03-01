@@ -86,7 +86,7 @@ class MyCallbacks(DefaultCallbacks):
         )
         print("episode {} (env-idx={}) started.".format(episode.episode_id, env_index))
         episode.user_data["move_actions"] = []
-        episode.hist_data["stay_actions"] = []
+        episode.user_data["stay_actions"] = []
 
     def on_episode_step(
         self,
@@ -103,11 +103,14 @@ class MyCallbacks(DefaultCallbacks):
             "ERROR: `on_episode_step()` callback should not be called right "
             "after env reset!"
         )
-        action = episode.last_for()
-        if action == 2:
-            episode.user_data["stay_actions"].append(action)
-        else:
-            episode.user_data["move_actions"].append(action)
+        for i in range(5):    #num agents - improve this
+          action = episode.last_action_for(str(i))
+          #print('action', action)
+          if action == 2:
+              episode.user_data["stay_actions"].append(action)
+          else:
+              episode.user_data["move_actions"].append(action)
+
 
     def on_episode_end(
         self,
@@ -123,7 +126,7 @@ class MyCallbacks(DefaultCallbacks):
         # "batch_mode": "truncate_episodes".
         if worker.policy_config["batch_mode"] == "truncate_episodes":
             # Make sure this episode is really done.
-            assert episode.batch_builder.policy_collectors["default_policy"].batches[
+            assert episode.batch_builder.policy_collectors["policy_0"].batches[
                 -1
             ]["dones"][-1], (
                 "ERROR: `on_episode_end()` should only be called "
@@ -187,12 +190,15 @@ if __name__ == "__main__":
         .environment("antisocialring")
         .framework(args.framework)
         .multi_agent(policies=policies, policy_mapping_fn=policy_mapping_fn)
+        .rollouts(num_envs_per_worker = 1, enable_connectors=False)
         # Use GPUs iff `RLLIB_NUM_GPUS` env var set to > 0.
         .resources(num_gpus=1)
         .callbacks(MyCallbacks)
+        .exploration(explore = True)
         .evaluation(evaluation_interval=1, #this not in time steps 
         evaluation_duration = 100,
-        evaluation_duration_unit = "timesteps")
+        evaluation_duration_unit = "timesteps",
+        evaluation_num_workers =1)
         )
 
     stop = {
@@ -209,7 +215,7 @@ if __name__ == "__main__":
             ]
         ),
         ).fit()
-
+    
     if args.as_test:
         check_learning_achieved(results, args.stop_reward)
     ray.shutdown()
