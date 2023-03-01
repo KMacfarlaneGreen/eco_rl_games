@@ -43,7 +43,7 @@ tf1, tf, tfv = try_import_tf()
 parser = argparse.ArgumentParser()
 
 parser.add_argument("--num-agents", type=int, default=5)
-parser.add_argument("--num-policies", type=int, default=1)
+parser.add_argument("--num-policies", type=int, default=5)
 parser.add_argument("--num-cpus", type=int, default=0)
 parser.add_argument(
     "--framework",
@@ -172,11 +172,11 @@ if __name__ == "__main__":
         return PolicySpec(config=config)
 
     # Setup PPO with an ensemble of `num_policies` different policies.
-    policies = {"policy_{}".format(i): gen_policy(i) for i in range(args.num_policies)}
+    policies = {"{}".format(i): gen_policy(i) for i in range(args.num_policies)}
     policy_ids = list(policies.keys())
 
     def policy_mapping_fn(agent_id, episode, worker, **kwargs):
-        pol_id = random.choice(policy_ids)
+        pol_id = policy_ids[agent_id]
         return pol_id
     
     #pettingzooenv
