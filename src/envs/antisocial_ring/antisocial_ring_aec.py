@@ -162,36 +162,37 @@ class raw_env(AECEnv):
              return
 
          agent = self.agent_selection
+         agent_id = str(agent)
 
          # the agent which stepped last had its _cumulative_rewards accounted for
          # (because it was returned by last()), so the _cumulative_rewards for this
          # agent should start again at 0
-         self._cumulative_rewards[agent] = 0
-
+         self._cumulative_rewards[agent_id] = 0
+         
          # save action of selected agent 
-         self.actions[agent] = action  
+         self.actions[agent_id] = action  
 
          #remove from map
-         self.map[self.agents_positions[agent]] -= 1
+         self.map[self.agents_positions[agent_id]] -= 1
 
          #update agent position
-         if self.actions[agent] == 0:
-                if self.agents_positions[agent] == 0:
-                    self.agents_positions[agent] = self.graph_size - 1
+         if self.actions[agent_id] == 0:
+                if self.agents_positions[agent_id] == 0:
+                    self.agents_positions[agent_id] = self.graph_size - 1
                 else:
-                    self.agents_positions[agent] = self.agents_positions[agent] - 1
-         elif self.actions[agent] == 1:
-                if self.agents_positions[agent] == self.graph_size - 1:
-                    self.agents_positions[agent] = 0
+                    self.agents_positions[agent_id] = self.agents_positions[agent] - 1
+         elif self.actions[agent_id] == 1:
+                if self.agents_positions[agent_id] == self.graph_size - 1:
+                    self.agents_positions[agent_id] = 0
                 else:
-                    self.agents_positions[agent] = self.agents_positions[agent] + 1
-         elif self.actions[agent] == 2:
-                     self.agents_positions[agent] = self.agents_positions[agent]
+                    self.agents_positions[agent_id] = self.agents_positions[agent] + 1
+         elif self.actions[agent_id] == 2:
+                     self.agents_positions[agent_id] = self.agents_positions[agent]
          else:
                 raise ValueError("Invalid action.")
          #update map
         
-         self.map[self.agents_positions[agent]] += 1
+         self.map[self.agents_positions[agent_id]] += 1
 
          #update agent fov
          for i, agent in enumerate(self.agents):
@@ -213,10 +214,14 @@ class raw_env(AECEnv):
          self.observations = {agent: self.agent_fov[i] for i, agent in enumerate(self.agents)}
 
          #calculate local reward
-         if self.map[self.agents_positions[agent]] > 1:
-                self.rewards[agent] = -1
+         if self.map[self.agents_positions[agent_id]] > 1:
+                self.rewards[agent_id] = -1
          else:
-                self.rewards[agent] = 1
+                self.rewards[agent_id] = 1
+         
+         # Adds .rewards to ._cumulative_rewards
+         #self._accumulate_rewards()
+         #self._cumulative_rewards[agent] = self.rewards[agent]
          
          if self._agent_selector.is_last():
         
@@ -230,10 +235,12 @@ class raw_env(AECEnv):
              }
 
          # selects the next agent.
+         #self._cumulative_rewards[agent_id] = 0
          self.agent_selection = self._agent_selector.next()
+         self._cumulative_rewards[agent_id] += self.rewards[agent_id]
          # Adds .rewards to ._cumulative_rewards
-         self._accumulate_rewards()
-
+         #self._accumulate_rewards()
          if self.render_mode == "human":
              self.render()
+    
     
