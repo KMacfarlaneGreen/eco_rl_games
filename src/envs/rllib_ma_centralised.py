@@ -112,8 +112,9 @@ class MyCallbacks(DefaultCallbacks):
           else:
               episode.user_data["move_actions"].append(action)
 
-          velocity = episode.last_info_for(str(i))
-          episode.user_data["velocities"].append(velocity)
+          velocity = episode.last_observation_for(str(i))
+          if velocity is not None:
+             episode.user_data["velocities"].append(np.sum(velocity))
 
 
     def on_episode_end(
