@@ -87,6 +87,7 @@ class MyCallbacks(DefaultCallbacks):
         print("episode {} (env-idx={}) started.".format(episode.episode_id, env_index))
         episode.user_data["move_actions"] = []
         episode.user_data["stay_actions"] = []
+        episode.user_data["velocities"] = []
 
     def on_episode_step(
         self,
@@ -110,6 +111,9 @@ class MyCallbacks(DefaultCallbacks):
               episode.user_data["stay_actions"].append(action)
           else:
               episode.user_data["move_actions"].append(action)
+
+          velocity = episode.last_info_for(str(i))
+          episode.user_data["velocities"].append(velocity)
 
 
     def on_episode_end(
@@ -136,6 +140,7 @@ class MyCallbacks(DefaultCallbacks):
         stay_move_ratio = len(episode.user_data["stay_actions"]) / len(
             episode.user_data["move_actions"]
         )
+        avg_vel = np.mean(episode.user_data["velocities"])
         print(
             "episode {} (env-idx={}) ended with length {} and mean alignement "
             "angles {}".format(
@@ -144,6 +149,7 @@ class MyCallbacks(DefaultCallbacks):
         )
         episode.custom_metrics["aligment"] = avg_alignment
         episode.custom_metrics["ratio"] = stay_move_ratio
+        episode.custom_metrics["avg_velocity"] = avg_vel
 
 
 args = parser.parse_args()

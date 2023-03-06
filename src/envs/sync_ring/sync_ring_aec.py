@@ -100,7 +100,7 @@ class raw_env(AECEnv):
         self._cumulative_rewards = {agent: 0 for agent in self.agents}
         self.terminations = {agent: False for agent in self.agents}
         self.truncations = {agent: False for agent in self.agents}
-        self.infos = {agent: {} for agent in self.agents}
+        self.infos = {agent: 0 for agent in self.agents}
         self.actions = {agent: None for agent in self.agents}
 
         self.agents_positions = {agent: 0 for agent in self.agents}
@@ -231,7 +231,7 @@ class raw_env(AECEnv):
          self.state = {agents: self.map_vel for agents in self.agents}
 
          #calculate local reward
-         self.rewards[agent_id] = np.abs(np.sum(self.agent_fov[agent_id]))
+         self.rewards[agent_id] = np.abs(np.sum(self.observations[agent_id]))
          
          # Adds .rewards to ._cumulative_rewards
          #self._accumulate_rewards()
@@ -242,12 +242,12 @@ class raw_env(AECEnv):
              self.num_moves += 1
             # The truncations dictionary must be updated for all players.
              self.truncations = {
-                 agent: self.num_moves >= MAX_ITERS for agent in self.agents
+                 agents: self.num_moves >= MAX_ITERS for agents in self.agents
              }
              self.terminations = {
-                 agent: self.num_moves >= MAX_ITERS for agent in self.agents
+                 agents: self.num_moves >= MAX_ITERS for agents in self.agents
              }
-
+             self.infos = {agents : self.agents_velocity[i] for i, agents in enumerate(self.agents)}
          # selects the next agent.
          #self._cumulative_rewards[agent_id] = 0
          self.agent_selection = self._agent_selector.next()
