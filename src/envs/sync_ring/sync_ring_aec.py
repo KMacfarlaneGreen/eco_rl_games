@@ -6,10 +6,10 @@ from gymnasium.spaces import Dict, Discrete, Box
 from pettingzoo import AECEnv
 from pettingzoo.utils import agent_selector, wrappers
 
-LEFT = 0
-RIGHT = 1
-STAY = 2
-MOVES = ['LEFT', 'RIGHT', 'STAY']
+SAME = 0
+SWITCH = 1
+MOVES = ['SAME', 'SWITCH']
+VELOCITIES = [1, -1]
 MAX_ITERS = 1000
 
 def env(render_mode = None):
@@ -27,7 +27,7 @@ def env(render_mode = None):
     return env
 
 class raw_env(AECEnv):
-     metadata = {'render.modes': ['human'], 'name': "antisocial_ring_v0"}
+     metadata = {'render.modes': ['human'], 'name': "sync_ring_v0"}
 
      def __init__(self, render_mode = None):
          super().__init__()
@@ -41,16 +41,16 @@ class raw_env(AECEnv):
          self.possible_agents = [str(i) for i in range(self.agent_pop)]
          self.agent_name_mapping = dict(zip(self.possible_agents, list(range(self.agent_pop))))
          #self.agent_selection = agent_selector(self.agent_order)
-         self._action_spaces = {agent: Discrete(3) for agent in self.possible_agents}
+         self._action_spaces = {agent: Discrete(2) for agent in self.possible_agents}
 
-         self._observation_spaces = {agent: Box(low=np.zeros((3)), high = self.agent_pop*np.ones((3)),dtype=np.float32) for agent in self.possible_agents}
+         self._observation_spaces = {agent: Box(low = -self.agent_pop*np.ones((3)), high = self.agent_pop*np.ones((3)),dtype=np.float32) for agent in self.possible_agents}
 
      @functools.lru_cache(maxsize=None)
      def observation_space(self, agent):
-        return Box(low=np.zeros((3)), high = self.agent_pop*np.ones((3)), dtype=np.float32) 
+        return Box(low= - self.agent_pop*np.ones((3)), high = self.agent_pop*np.ones((3)), dtype=np.float32) 
      @functools.lru_cache(maxsize=None)
      def action_space(self, agent):
-        return Discrete(3)
+        return Discrete(2)
      
      def seed(self, seed=None):
         pass
@@ -106,31 +106,38 @@ class raw_env(AECEnv):
         self.agents_positions = {agent: 0 for agent in self.agents}
         for i in self.agents:
           self.agents_positions[i] = np.random.choice(self.nodes)  #randomly select initial positions for agents
-        self.map = np.zeros((self.graph_size))
+
+        self.agents_velocity = {agent: np.random.choice(VELOCITIES) for agent in self.agents} #randomly select initial velocities (direction of motion) for agents
+        
+        self.map_occ = np.zeros((self.graph_size))
         for i in self.agents:
-            self.map[self.agents_positions[i]] += 1
+            self.map_occ[self.agents_positions[i]] += 1
+
+        self.map_vel = np.zeros((self.graph_size))
+        for i in self.agents:
+            self.map_vel[self.agents_positions[i]] += self.agents_velocity[i]
         
         self.agent_fov = np.zeros((self.agent_pop, 3))
         for i, agent in enumerate(self.agents):
             if self.agents_positions[agent] == 0:
                 pos_minus = self.graph_size - 1
-                self.agent_fov[i, 0] = self.map[pos_minus]
-                self.agent_fov[i, 1] = self.map[0]
-                self.agent_fov[i, 2] = self.map[1]
+                self.agent_fov[i, 0] = self.map_vel[pos_minus]
+                self.agent_fov[i, 1] = self.map_vel[0]
+                self.agent_fov[i, 2] = self.map_vel[1]
             elif self.agents_positions[agent] == self.graph_size - 1:
                 pos_minus = self.graph_size - 2
                 pos = self.graph_size - 1 
-                self.agent_fov[i, 0] = self.map[pos_minus]
-                self.agent_fov[i, 1] = self.map[pos]
-                self.agent_fov[i, 2] = self.map[0]
+                self.agent_fov[i, 0] = self.map_vel[pos_minus]
+                self.agent_fov[i, 1] = self.map_vel[pos]
+                self.agent_fov[i, 2] = self.map_vel[0]
             else:
                 pos_minus = self.agents_positions[agent] - 1
                 pos = self.agents_positions[agent]
                 pos_plus = self.agents_positions[agent] + 1
-                self.agent_fov[i, 0] = self.map[pos_minus]
-                self.agent_fov[i, 1] = self.map[pos]
-                self.agent_fov[i, 2] = self.map[pos_plus]
-        self.state = {agent: self.map for agent in self.agents}
+                self.agent_fov[i, 0] = self.map_vel[pos_minus]
+                self.agent_fov[i, 1] = self.map_vel[pos]
+                self.agent_fov[i, 2] = self.map_vel[pos_plus]
+        self.state = {agent: self.map_vel for agent in self.agents} #which map do we want for state?
              #how to add agent's position to the observation - add to map/fov?
         
         self.observations = {agent: self.agent_fov[i] for i, agent in enumerate(self.agents)}
@@ -173,51 +180,58 @@ class raw_env(AECEnv):
          self.actions[agent_id] = action  
 
          #remove from map
-         self.map[self.agents_positions[agent_id]] -= 1
+         self.map_occ[self.agents_positions[agent_id]] -= 1
+         self.map_vel[self.agents_positions[agent_id]] -= self.agents_velocity[agent_id]
 
-         #update agent position
-         if self.actions[agent_id] == 0:
-                if self.agents_positions[agent_id] == 0:
-                    self.agents_positions[agent_id] = self.graph_size - 1
-                else:
-                    self.agents_positions[agent_id] = self.agents_positions[agent] - 1
-         elif self.actions[agent_id] == 1:
-                if self.agents_positions[agent_id] == self.graph_size - 1:
-                    self.agents_positions[agent_id] = 0
-                else:
-                    self.agents_positions[agent_id] = self.agents_positions[agent] + 1
-         elif self.actions[agent_id] == 2:
-                     self.agents_positions[agent_id] = self.agents_positions[agent]
+         #update agent position and velocity
+         if self.actions[agent_id] == 0:    #velocity stays the same
+                self.agents_velocity[agent_id] = self.agents_velocity[agent_id]
+
+         elif self.actions[agent_id] == 1:   #velocity switches direction
+                self.agents_velocity[agent_id] = -self.agents_velocity[agent_id]
+
          else:
                 raise ValueError("Invalid action.")
+    
+         if self.agents_velocity == 1:
+             if self.agents_positions[agent_id] == self.graph_size - 1:
+                 self.agents_positions[agent_id] = 0
+             else:
+                 self.agents_positions[agent_id] = self.agents_positions[agent] + 1
+             
+         elif self.agents_velocity == -1:
+             if self.agents_positions[agent_id] == 0:
+                 self.agents_positions[agent_id] = self.graph_size - 1
+             else:
+                 self.agents_positions[agent_id] = self.agents_positions[agent] - 1
+    
          #update map
         
-         self.map[self.agents_positions[agent_id]] += 1
+         self.map_occ[self.agents_positions[agent_id]] += 1
+         self.map_vel[self.agents_positions[agent_id]] += self.agents_velocity[agent_id]
 
          #update agent fov
          for i, agents in enumerate(self.agents):
                 if self.agents_positions[agents] == 0:
-                    self.agent_fov[i, 0] = self.map[self.graph_size - 1]
-                    self.agent_fov[i, 1] = self.map[0]
-                    self.agent_fov[i, 2] = self.map[1]
+                    self.agent_fov[i, 0] = self.map_vel[self.graph_size - 1]
+                    self.agent_fov[i, 1] = self.map_vel[0]
+                    self.agent_fov[i, 2] = self.map_vel[1]
                 elif self.agents_positions[agents] == self.graph_size - 1:
-                    self.agent_fov[i, 0] = self.map[self.graph_size - 2]
-                    self.agent_fov[i, 1] = self.map[self.graph_size - 1]
-                    self.agent_fov[i, 2] = self.map[0]
+                    self.agent_fov[i, 0] = self.map_vel[self.graph_size - 2]
+                    self.agent_fov[i, 1] = self.map_vel[self.graph_size - 1]
+                    self.agent_fov[i, 2] = self.map_vel[0]
                 else:
-                     self.agent_fov[i, 0] = self.map[self.agents_positions[agents] - 1]
-                     self.agent_fov[i, 1] = self.map[self.agents_positions[agents]]
-                     self.agent_fov[i, 2] = self.map[self.agents_positions[agents] + 1]
+                     self.agent_fov[i, 0] = self.map_vel[self.agents_positions[agents] - 1]
+                     self.agent_fov[i, 1] = self.map_vel[self.agents_positions[agents]]
+                     self.agent_fov[i, 2] = self.map_vel[self.agents_positions[agents] + 1]
 
 
          #update observations
          self.observations = {agents: self.agent_fov[i] for i, agents in enumerate(self.agents)}
-         self.state = {agents: self.map for agents in self.agents}
+         self.state = {agents: self.map_vel for agents in self.agents}
+
          #calculate local reward
-         if self.map[self.agents_positions[agent_id]] > 1:
-                self.rewards[agent_id] = -1
-         else:
-                self.rewards[agent_id] = 1
+         self.rewards[agent_id] = np.abs(np.sum(self.agent_fov[agent_id]))
          
          # Adds .rewards to ._cumulative_rewards
          #self._accumulate_rewards()
@@ -228,10 +242,10 @@ class raw_env(AECEnv):
              self.num_moves += 1
             # The truncations dictionary must be updated for all players.
              self.truncations = {
-                 agents: self.num_moves >= MAX_ITERS for agents in self.agents
+                 agent: self.num_moves >= MAX_ITERS for agent in self.agents
              }
              self.terminations = {
-                 agents: self.num_moves >= MAX_ITERS for agents in self.agents
+                 agent: self.num_moves >= MAX_ITERS for agent in self.agents
              }
 
          # selects the next agent.
@@ -242,5 +256,3 @@ class raw_env(AECEnv):
          #self._accumulate_rewards()
          if self.render_mode == "human":
              self.render()
-    
-    
