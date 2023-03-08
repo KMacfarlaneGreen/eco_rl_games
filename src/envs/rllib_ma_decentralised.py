@@ -36,7 +36,7 @@ from ray.air.integrations.wandb import WandbLoggerCallback
 from ray.rllib.env import PettingZooEnv
 from ray.rllib.env.wrappers.pettingzoo_env import ParallelPettingZooEnv
 from ray.tune.registry import register_env
-from src.envs import antisocial_ring_v0
+from src.envs import sync_ring_v0
 
 tf1, tf, tfv = try_import_tf()
 
@@ -85,8 +85,15 @@ class MyCallbacks(DefaultCallbacks):
             "after env reset!"
         )
         print("episode {} (env-idx={}) started.".format(episode.episode_id, env_index))
-        episode.user_data["move_actions"] = []
-        episode.user_data["stay_actions"] = []
+        #episode.user_data["move_actions"] = []
+        #episode.user_data["stay_actions"] = []
+        episode.user_data["actions"] = []
+        episode.user_data["velocities"] =[]
+        episode.user_data["max_separation"] = []
+        for i in range(5):    #num agents - improve this
+            episode.user_data["velocity_{}".format(i)] = []
+
+
 
     def on_episode_step(
         self,
@@ -103,15 +110,25 @@ class MyCallbacks(DefaultCallbacks):
             "ERROR: `on_episode_step()` callback should not be called right "
             "after env reset!"
         )
+        
+        positions = []
         for i in range(5):    #num agents - improve this
           action = episode.last_action_for(str(i))
-          #print('action', action)
-          if action == 2:
-              episode.user_data["stay_actions"].append(action)
-          else:
-              episode.user_data["move_actions"].append(action)
+          episode.user_data["actions"].append(action)
 
+          observation = episode.last_observation_for(str(i))
+          if observation is not None:
+            episode.user_data["velocity_{}".format(i)].append(observation[1])
+            episode.user_data["velocities"].append(observation[1])
+            positions.append(observation[0])
+        
+        separation = np.max(positions) - np.min(positions)
+        if separation <= 10: #graphsize/2
+            episode.user_data["max_separation"].append(separation)
+        else:
+            episode.user_data["max_separation"].append(20 - separation) #graphsize - separation
 
+        
     def on_episode_end(
         self,
         *,
@@ -132,10 +149,10 @@ class MyCallbacks(DefaultCallbacks):
                 "ERROR: `on_episode_end()` should only be called "
                 "after episode is done!"
             )
-        avg_alignment = np.mean(episode.user_data["move_actions"])
-        stay_move_ratio = len(episode.user_data["stay_actions"]) / len(
-            episode.user_data["move_actions"]
-        )
+        
+        avg_alignment = np.mean(episode.user_data["velocities"])
+        stay_move_avg = np.sum(episode.user_data["actions"])
+        avg_max_separation = np.mean(episode.user_data["max_separation"])
         print(
             "episode {} (env-idx={}) ended with length {} and mean alignement "
             "angles {}".format(
@@ -143,7 +160,10 @@ class MyCallbacks(DefaultCallbacks):
             )
         )
         episode.custom_metrics["aligment"] = avg_alignment
-        episode.custom_metrics["ratio"] = stay_move_ratio
+        episode.custom_metrics["stay_move_avg"] = stay_move_avg
+        episode.custom_metrics["max_separation"] = avg_max_separation
+        for i in range(5):    #num agents - improve this
+            episode.custom_metrics["velocity_{}".format(i)] = np.mean(episode.user_data["velocity_{}".format(i)])
 
 
 args = parser.parse_args()
@@ -172,7 +192,7 @@ if __name__ == "__main__":
         return PolicySpec(config=config)
 
     # Setup PPO with an ensemble of `num_policies` different policies.
-    policies = {"{}".format(i): gen_policy(i) for i in range(args.num_policies)}
+    policies = {"policy_{}".format(i): gen_policy(i) for i in range(args.num_policies)}
     policy_ids = list(policies.keys())
 
     def policy_mapping_fn(agent_id, episode, worker, **kwargs):
@@ -180,15 +200,16 @@ if __name__ == "__main__":
         return pol_id
     
     #pettingzooenv
-    env = PettingZooEnv(antisocial_ring_v0.env())
+    env = PettingZooEnv(sync_ring_v0.env())
 
-    register_env("antisocialring", lambda _: PettingZooEnv(antisocial_ring_v0.env()))
+    register_env("syncring", lambda _: PettingZooEnv(sync_ring_v0.env()))
 
     config = (
         DQNConfig()
         #.environment(AntisocialRingEnv, env_config={"num_agents": args.num_agents, "graph_size": 10})
-        .environment("antisocialring")
+        .environment("syncring")
         .framework(args.framework)
+        .training(hiddens = 2)
         .multi_agent(policies=policies, policy_mapping_fn=policy_mapping_fn)
         .rollouts(num_envs_per_worker = 1, enable_connectors=False)
         # Use GPUs iff `RLLIB_NUM_GPUS` env var set to > 0.

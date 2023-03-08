@@ -140,7 +140,7 @@ class raw_env(AECEnv):
         self.state = {agent: self.map_vel for agent in self.agents} #which map do we want for state?
              #how to add agent's position to the observation - add to map/fov?
         
-        self.observations = {agent: self.agent_fov[i] for i, agent in enumerate(self.agents)}
+        self.observations = {agent: np.hstack((self.agents_positions[i], self.agents_velocity[i], self.agent_fov[i])) for i, agent in enumerate(self.agents)}
         self.num_moves = 0
         
         self._agent_selector = agent_selector(self.agents)
@@ -227,7 +227,7 @@ class raw_env(AECEnv):
 
 
          #update observations
-         self.observations = {agents: self.agent_fov[i] for i, agents in enumerate(self.agents)}
+         self.observations = {agents: np.hstack((self.agents_positions[i], self.agents_velocity[i], self.agent_fov[i])) for i, agents in enumerate(self.agents)}
          self.state = {agents: self.map_vel for agents in self.agents}
 
          #calculate local reward
