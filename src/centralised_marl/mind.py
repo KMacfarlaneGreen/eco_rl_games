@@ -17,11 +17,11 @@ class Mind:
     ALPHA = 0.1
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    def __init__(self, input_size, num_actions, lock, queue, destination = None, memory_length=1000000):
+    def __init__(self, input_size, num_actions, destination = None, memory_length=1000000):
         self.network = DQN(input_size, num_actions)
         self.target_network = DQN(input_size, num_actions)
-        self.lock = lock
-        self.queue = queue        
+        #self.lock = lock
+        #self.queue = queue        
         self.losses = []
         self.network.share_memory()      
         self.target_network.share_memory()
@@ -74,7 +74,7 @@ class Mind:
     def remember(self, vals):     
         self.memory.push(vals)    #saves current state, action, next stae and reward to replay memory
 
-    def opt(self, data, lock, queue):
+    def opt(self, data):
         batch_state, batch_action, batch_next_state, batch_done, expected_q_values = data
         current_q_values = self.network(batch_state).gather(1, batch_action)
         #print('q vals',current_q_values)
@@ -87,14 +87,17 @@ class Mind:
         loss = F.mse_loss(current_q_values, expected_q_values.unsqueeze(1))   
         self.optimizer.zero_grad()
         loss.backward()
-        for param in self.network.parameters():
-            param.grad.data.clamp_(-1, 1)
+        torch.nn.utils.clip_grad_norm_(self.network.parameters(), 1)
+        #for param in self.network.parameters():
+            #param.grad.data.clamp_(-1, 1)
 
         self.optimizer.step()
 
-        queue.put(loss.item())
+        #queue.put(loss.item())
         for target_param, param in zip(self.target_network.parameters(), self.network.parameters()):
             target_param.data.copy_(self.TAU * param.data + target_param.data * (1.0 - self.TAU))
+
+        return loss
 
     def get_data(self):
         transitions = self.memory.sample(self.BATCH_SIZE)
@@ -113,17 +116,21 @@ class Mind:
     def train(self):
         if len(self.memory) < self.BATCH_SIZE:
             return 1
-        processes = []
-        for _ in range(self.num_cpu):     
-            data = self.get_data()
-            p = mp.Process(target=self.opt, args=(data, self.lock, self.queue))
-            p.start()
-            processes.append(p)
-        for p in processes:
-            loss = self.queue.get() # will block
-            self.losses.append(loss)
-        for p in processes:
-            p.join()
+
+        data = self.get_data()
+        loss = self.opt(data)
+        self.losses.append(loss.detach().numpy())
+        #processes = []
+        #for _ in range(self.num_cpu):     
+            #data = self.get_data()
+            #p = mp.Process(target=self.opt, args=(data, self.lock, self.queue))
+            #p.start()
+            #processes.append(p)
+        #for p in processes:
+            #loss = self.queue.get() # will block
+            #self.losses.append(loss)
+        #for p in processes:
+            #p.join()
 
         return 0
 
