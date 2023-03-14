@@ -64,7 +64,7 @@ parser.add_argument(
     "--stop-timesteps", type=int, default=100000, help="Number of timesteps to train."
 )
 parser.add_argument(
-    "--stop-reward", type=float, default=5000.0, help="Reward at which we stop training."
+    "--stop-reward", type=float, default=50000.0, help="Reward at which we stop training."
 )
 
 class MyCallbacks(DefaultCallbacks):
@@ -151,7 +151,7 @@ class MyCallbacks(DefaultCallbacks):
             )
         
         avg_alignment = np.mean(episode.user_data["velocities"])
-        stay_move_avg = np.sum(episode.user_data["actions"])
+        stay_move_avg = np.mean(episode.user_data["actions"])
         avg_max_separation = np.mean(episode.user_data["max_separation"])
         print(
             "episode {} (env-idx={}) ended with length {} and mean alignement "
@@ -163,7 +163,8 @@ class MyCallbacks(DefaultCallbacks):
         episode.custom_metrics["stay_move_avg"] = stay_move_avg
         episode.custom_metrics["max_separation"] = avg_max_separation
         for i in range(5):    #num agents - improve this
-            episode.custom_metrics["velocity_{}".format(i)] = np.mean(episode.user_data["velocity_{}".format(i)])
+            episode.custom_metrics["avg_velocity_{}".format(i)] = np.mean(episode.user_data["velocity_{}".format(i)])
+            episode.custom_metrics["velocity_{}".format(i)] = episode.user_data["velocity_{}".format(i)]
 
 
 args = parser.parse_args()
@@ -196,7 +197,7 @@ if __name__ == "__main__":
     policy_ids = list(policies.keys())
 
     def policy_mapping_fn(agent_id, episode, worker, **kwargs):
-        pol_id = policy_ids[agent_id]
+        pol_id = policy_ids[int(agent_id)]
         return pol_id
     
     #pettingzooenv
@@ -209,7 +210,7 @@ if __name__ == "__main__":
         #.environment(AntisocialRingEnv, env_config={"num_agents": args.num_agents, "graph_size": 10})
         .environment("syncring")
         .framework(args.framework)
-        .training(hiddens = 2)
+        .training(hiddens = [16])
         .multi_agent(policies=policies, policy_mapping_fn=policy_mapping_fn)
         .rollouts(num_envs_per_worker = 1, enable_connectors=False)
         # Use GPUs iff `RLLIB_NUM_GPUS` env var set to > 0.
@@ -217,9 +218,9 @@ if __name__ == "__main__":
         .callbacks(MyCallbacks)
         .exploration(explore = True)
         .evaluation(evaluation_interval=1, #this not in time steps 
-        evaluation_duration = 100,
-        evaluation_duration_unit = "timesteps",
-        evaluation_num_workers =1)
+        evaluation_duration = 1,
+        evaluation_duration_unit = "episodes",
+        evaluation_num_workers = 1)
         )
 
     stop = {

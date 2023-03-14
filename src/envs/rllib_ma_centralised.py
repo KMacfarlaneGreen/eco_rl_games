@@ -64,7 +64,7 @@ parser.add_argument(
     "--stop-timesteps", type=int, default=100000, help="Number of timesteps to train."
 )
 parser.add_argument(
-    "--stop-reward", type=float, default=5000.0, help="Reward at which we stop training."
+    "--stop-reward", type=float, default=50000.0, help="Reward at which we stop training."
 )
 
 class MyCallbacks(DefaultCallbacks):
@@ -85,9 +85,15 @@ class MyCallbacks(DefaultCallbacks):
             "after env reset!"
         )
         print("episode {} (env-idx={}) started.".format(episode.episode_id, env_index))
-        episode.user_data["move_actions"] = []
-        episode.user_data["stay_actions"] = []
-        episode.user_data["velocities"] = []
+        #episode.user_data["move_actions"] = []
+        #episode.user_data["stay_actions"] = []
+        episode.user_data["actions"] = []
+        episode.user_data["velocities"] =[]
+        episode.user_data["max_separation"] = []
+        for i in range(5):    #num agents - improve this
+            episode.user_data["velocity_{}".format(i)] = []
+
+
 
     def on_episode_step(
         self,
@@ -104,19 +110,25 @@ class MyCallbacks(DefaultCallbacks):
             "ERROR: `on_episode_step()` callback should not be called right "
             "after env reset!"
         )
+        
+        positions = []
         for i in range(5):    #num agents - improve this
           action = episode.last_action_for(str(i))
-          #print('action', action)
-          if action == 2:
-              episode.user_data["stay_actions"].append(action)
-          else:
-              episode.user_data["move_actions"].append(action)
+          episode.user_data["actions"].append(action)
 
-          velocity = episode.last_observation_for(str(i))
-          if velocity is not None:
-             episode.user_data["velocities"].append(np.sum(velocity))
+          observation = episode.last_observation_for(str(i))
+          if observation is not None:
+            episode.user_data["velocity_{}".format(i)].append(observation[1])
+            episode.user_data["velocities"].append(observation[1])
+            positions.append(observation[0])
+        
+        separation = np.max(positions) - np.min(positions)
+        if separation <= 10: #graphsize/2
+            episode.user_data["max_separation"].append(separation)
+        else:
+            episode.user_data["max_separation"].append(20 - separation) #graphsize - separation
 
-
+        
     def on_episode_end(
         self,
         *,
@@ -137,11 +149,10 @@ class MyCallbacks(DefaultCallbacks):
                 "ERROR: `on_episode_end()` should only be called "
                 "after episode is done!"
             )
-        avg_alignment = np.mean(episode.user_data["move_actions"])
-        stay_move_ratio = len(episode.user_data["stay_actions"]) / len(
-            episode.user_data["move_actions"]
-        )
-        avg_vel = np.mean(episode.user_data["velocities"])
+        
+        avg_alignment = np.mean(episode.user_data["velocities"])
+        stay_move_avg = np.mean(episode.user_data["actions"])
+        avg_max_separation = np.mean(episode.user_data["max_separation"])
         print(
             "episode {} (env-idx={}) ended with length {} and mean alignement "
             "angles {}".format(
@@ -149,8 +160,12 @@ class MyCallbacks(DefaultCallbacks):
             )
         )
         episode.custom_metrics["aligment"] = avg_alignment
-        episode.custom_metrics["ratio"] = stay_move_ratio
-        episode.custom_metrics["avg_velocity"] = avg_vel
+        episode.custom_metrics["stay_move_avg"] = stay_move_avg
+        episode.custom_metrics["max_separation"] = avg_max_separation
+        for i in range(5):    #num agents - improve this
+            episode.custom_metrics["avg_velocity_{}".format(i)] = np.mean(episode.user_data["velocity_{}".format(i)])
+            episode.custom_metrics["velocity_{}".format(i)] = episode.user_data["velocity_{}".format(i)]
+
 
 
 args = parser.parse_args()
@@ -200,11 +215,12 @@ if __name__ == "__main__":
         .rollouts(num_envs_per_worker = 1, enable_connectors=False)
         # Use GPUs iff `RLLIB_NUM_GPUS` env var set to > 0.
         .resources(num_gpus=1)
+        .training(hiddens = [16])
         .callbacks(MyCallbacks)
         .exploration(explore = True)
         .evaluation(evaluation_interval=1, #this not in time steps 
-        evaluation_duration = 100,
-        evaluation_duration_unit = "timesteps",
+        evaluation_duration = 1,
+        evaluation_duration_unit = "episodes",
         evaluation_num_workers =1)
         )
 

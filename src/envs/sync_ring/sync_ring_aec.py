@@ -43,11 +43,11 @@ class raw_env(AECEnv):
          #self.agent_selection = agent_selector(self.agent_order)
          self._action_spaces = {agent: Discrete(2) for agent in self.possible_agents}
 
-         self._observation_spaces = {agent: Box(low = -self.agent_pop*np.ones((3)), high = self.agent_pop*np.ones((3)),dtype=np.float32) for agent in self.possible_agents}
+         self._observation_spaces = {agent: Box(low = -self.agent_pop*np.ones((5)), high = self.graph_size*np.ones((5)),dtype=np.float32) for agent in self.possible_agents}
 
      @functools.lru_cache(maxsize=None)
      def observation_space(self, agent):
-        return Box(low= - self.agent_pop*np.ones((3)), high = self.agent_pop*np.ones((3)), dtype=np.float32) 
+        return Box(low= - self.agent_pop*np.ones((5)), high = self.graph_size*np.ones((5)), dtype=np.float32) 
      @functools.lru_cache(maxsize=None)
      def action_space(self, agent):
         return Discrete(2)
